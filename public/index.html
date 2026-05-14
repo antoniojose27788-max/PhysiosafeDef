@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="PhysioSafe, gestion segura para clinicas de fisioterapia.">
+    <title>PhysioSafe | Acceso seguro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="/style.css" rel="stylesheet">
+  </head>
+  <body class="auth-surface">
+    <header class="auth-header container">
+      <nav class="brand-nav" aria-label="Navegacion principal">
+        <a class="brand-mark" href="/" aria-label="PhysioSafe">
+          <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
+          <strong>PhysioSafe</strong>
+        </a>
+        <a class="ghost-link" href="#access">Acceder</a>
+      </nav>
+    </header>
+
+    <main class="container auth-shell" id="access">
+      <section class="row align-items-center g-4">
+        <article class="col-12 col-lg-6 hero-copy">
+          <p class="eyebrow">Clinica conectada, datos protegidos</p>
+          <h1>Gestion clinica avanzada para fisioterapia.</h1>
+          <p class="hero-text">
+            Citas, consentimientos, reportes y roles en una base robusta para operar con claridad desde el primer dia.
+          </p>
+          <section class="trust-strip" aria-label="Capacidades principales">
+            <article>
+              <i class="fa-solid fa-user-lock" aria-hidden="true"></i>
+              <span>JWT seguro</span>
+            </article>
+            <article>
+              <i class="fa-solid fa-calendar-check" aria-hidden="true"></i>
+              <span>Citas sin solapes</span>
+            </article>
+            <article>
+              <i class="fa-solid fa-file-signature" aria-hidden="true"></i>
+              <span>Consentimientos</span>
+            </article>
+          </section>
+        </article>
+
+        <section class="col-12 col-lg-6">
+          <article class="glass-panel access-card" aria-labelledby="access-title">
+            <header class="panel-header">
+              <p class="eyebrow">Acceso</p>
+              <h2 id="access-title">Entrar o crear cuenta de paciente</h2>
+            </header>
+
+            <nav class="segmented-control" aria-label="Modo de acceso">
+              <button class="segment active" type="button" data-auth-mode="login">
+                <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+                Login
+              </button>
+              <button class="segment" type="button" data-auth-mode="register">
+                <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+                Registro paciente
+              </button>
+            </nav>
+
+            <form class="auth-form" id="loginForm">
+              <label>
+                Email
+                <input class="form-control" type="email" name="email" autocomplete="email" required>
+              </label>
+              <label>
+                Password
+                <input class="form-control" type="password" name="password" autocomplete="current-password" minlength="8" required>
+              </label>
+              <button class="btn primary-action w-100" type="submit">
+                <i class="fa-solid fa-unlock-keyhole" aria-hidden="true"></i>
+                Entrar
+              </button>
+            </form>
+
+            <form class="auth-form d-none" id="registerForm">
+              <label>
+                Nombre completo
+                <input class="form-control" type="text" name="name" autocomplete="name" minlength="2" required>
+              </label>
+              <label>
+                Email
+                <input class="form-control" type="email" name="email" autocomplete="email" required>
+              </label>
+              <label>
+                Password
+                <input class="form-control" type="password" name="password" autocomplete="new-password" minlength="8" required>
+              </label>
+              <label>
+                Telefono
+                <input class="form-control" type="tel" name="phone" autocomplete="tel">
+              </label>
+              <label>
+                DNI
+                <input class="form-control" type="text" name="dni">
+              </label>
+              <label>
+                Fecha de nacimiento
+                <input class="form-control" type="date" name="birthDate">
+              </label>
+              <button class="btn primary-action w-100" type="submit">
+                <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+                Crear cuenta
+              </button>
+            </form>
+
+            <p class="form-feedback" id="authFeedback" role="status" aria-live="polite"></p>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <footer class="container app-footer">
+      <small>PhysioSafe protege el acceso y separa permisos por admin, fisioterapeuta y paciente.</small>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

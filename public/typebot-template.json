@@ -1,0 +1,330 @@
+{
+  "version": "6",
+  "name": "PhysioSafe - Admision y triaje",
+  "events": [
+    {
+      "id": "event-start",
+      "type": "start",
+      "graphCoordinates": {
+        "x": 80,
+        "y": 120
+      },
+      "outgoingEdgeId": "edge-start-intro"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group-admision",
+      "title": "Admision del paciente",
+      "graphCoordinates": {
+        "x": 360,
+        "y": 80
+      },
+      "blocks": [
+        {
+          "id": "block-intro",
+          "type": "text",
+          "content": {
+            "richText": [
+              {
+                "type": "p",
+                "children": [
+                  {
+                    "text": "Hola, soy el asistente de PhysioSafe. Voy a recoger tus datos para preparar tu primera cita."
+                  }
+                ]
+              }
+            ]
+          },
+          "outgoingEdgeId": "edge-intro-name"
+        },
+        {
+          "id": "block-name",
+          "type": "text input",
+          "options": {
+            "labels": {
+              "placeholder": "Nombre y apellidos",
+              "button": "Continuar"
+            },
+            "variableId": "var-name"
+          },
+          "outgoingEdgeId": "edge-name-phone"
+        },
+        {
+          "id": "block-phone",
+          "type": "text input",
+          "options": {
+            "labels": {
+              "placeholder": "Telefono de contacto",
+              "button": "Continuar"
+            },
+            "variableId": "var-phone"
+          },
+          "outgoingEdgeId": "edge-phone-email"
+        },
+        {
+          "id": "block-email",
+          "type": "email input",
+          "options": {
+            "labels": {
+              "placeholder": "Email",
+              "button": "Continuar"
+            },
+            "variableId": "var-email"
+          },
+          "outgoingEdgeId": "edge-email-reason"
+        },
+        {
+          "id": "block-reason",
+          "type": "text input",
+          "options": {
+            "labels": {
+              "placeholder": "Motivo de consulta",
+              "button": "Continuar"
+            },
+            "isLong": true,
+            "variableId": "var-reason"
+          },
+          "outgoingEdgeId": "edge-reason-pain"
+        }
+      ]
+    },
+    {
+      "id": "group-triaje",
+      "title": "Triaje inicial",
+      "graphCoordinates": {
+        "x": 840,
+        "y": 80
+      },
+      "blocks": [
+        {
+          "id": "block-pain",
+          "type": "choice input",
+          "items": [
+            {
+              "id": "choice-low",
+              "content": "Dolor leve"
+            },
+            {
+              "id": "choice-medium",
+              "content": "Dolor moderado"
+            },
+            {
+              "id": "choice-high",
+              "content": "Dolor intenso"
+            }
+          ],
+          "options": {
+            "variableId": "var-pain"
+          },
+          "outgoingEdgeId": "edge-pain-area"
+        },
+        {
+          "id": "block-area",
+          "type": "text input",
+          "options": {
+            "labels": {
+              "placeholder": "Zona afectada",
+              "button": "Continuar"
+            },
+            "variableId": "var-area"
+          },
+          "outgoingEdgeId": "edge-area-availability"
+        },
+        {
+          "id": "block-availability",
+          "type": "choice input",
+          "items": [
+            {
+              "id": "choice-morning",
+              "content": "Manana"
+            },
+            {
+              "id": "choice-afternoon",
+              "content": "Tarde"
+            },
+            {
+              "id": "choice-any",
+              "content": "Indiferente"
+            }
+          ],
+          "options": {
+            "variableId": "var-availability"
+          },
+          "outgoingEdgeId": "edge-availability-consent"
+        },
+        {
+          "id": "block-consent-note",
+          "type": "text",
+          "content": {
+            "richText": [
+              {
+                "type": "p",
+                "children": [
+                  {
+                    "text": "Gracias. El equipo revisara tu solicitud y preparara la cita y los consentimientos necesarios en PhysioSafe."
+                  }
+                ]
+              }
+            ]
+          },
+          "outgoingEdgeId": "edge-consent-end"
+        },
+        {
+          "id": "block-end",
+          "type": "text",
+          "content": {
+            "richText": [
+              {
+                "type": "p",
+                "children": [
+                  {
+                    "text": "Hemos terminado. Si el dolor es incapacitante o hay sintomas neurologicos, contacta con urgencias."
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-start-intro",
+      "from": {
+        "eventId": "event-start"
+      },
+      "to": {
+        "groupId": "group-admision",
+        "blockId": "block-intro"
+      }
+    },
+    {
+      "id": "edge-intro-name",
+      "from": {
+        "blockId": "block-intro"
+      },
+      "to": {
+        "groupId": "group-admision",
+        "blockId": "block-name"
+      }
+    },
+    {
+      "id": "edge-name-phone",
+      "from": {
+        "blockId": "block-name"
+      },
+      "to": {
+        "groupId": "group-admision",
+        "blockId": "block-phone"
+      }
+    },
+    {
+      "id": "edge-phone-email",
+      "from": {
+        "blockId": "block-phone"
+      },
+      "to": {
+        "groupId": "group-admision",
+        "blockId": "block-email"
+      }
+    },
+    {
+      "id": "edge-email-reason",
+      "from": {
+        "blockId": "block-email"
+      },
+      "to": {
+        "groupId": "group-admision",
+        "blockId": "block-reason"
+      }
+    },
+    {
+      "id": "edge-reason-pain",
+      "from": {
+        "blockId": "block-reason"
+      },
+      "to": {
+        "groupId": "group-triaje",
+        "blockId": "block-pain"
+      }
+    },
+    {
+      "id": "edge-pain-area",
+      "from": {
+        "blockId": "block-pain"
+      },
+      "to": {
+        "groupId": "group-triaje",
+        "blockId": "block-area"
+      }
+    },
+    {
+      "id": "edge-area-availability",
+      "from": {
+        "blockId": "block-area"
+      },
+      "to": {
+        "groupId": "group-triaje",
+        "blockId": "block-availability"
+      }
+    },
+    {
+      "id": "edge-availability-consent",
+      "from": {
+        "blockId": "block-availability"
+      },
+      "to": {
+        "groupId": "group-triaje",
+        "blockId": "block-consent-note"
+      }
+    },
+    {
+      "id": "edge-consent-end",
+      "from": {
+        "blockId": "block-consent-note"
+      },
+      "to": {
+        "groupId": "group-triaje",
+        "blockId": "block-end"
+      }
+    }
+  ],
+  "variables": [
+    {
+      "id": "var-name",
+      "name": "Nombre paciente"
+    },
+    {
+      "id": "var-phone",
+      "name": "Telefono"
+    },
+    {
+      "id": "var-email",
+      "name": "Email"
+    },
+    {
+      "id": "var-reason",
+      "name": "Motivo consulta"
+    },
+    {
+      "id": "var-pain",
+      "name": "Nivel dolor"
+    },
+    {
+      "id": "var-area",
+      "name": "Zona afectada"
+    },
+    {
+      "id": "var-availability",
+      "name": "Disponibilidad"
+    }
+  ],
+  "theme": {},
+  "settings": {
+    "general": {
+      "isBrandingEnabled": false
+    }
+  }
+}

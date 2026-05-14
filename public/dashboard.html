@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Dashboard de gestion PhysioSafe.">
+    <title>PhysioSafe | Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="/style.css" rel="stylesheet">
+  </head>
+  <body class="dashboard-surface">
+    <header class="dashboard-topbar">
+      <nav class="container-fluid dashboard-nav" aria-label="Navegacion del panel">
+        <a class="brand-mark" href="/dashboard.html" aria-label="PhysioSafe dashboard">
+          <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
+          <strong>PhysioSafe</strong>
+        </a>
+        <section class="user-chip" aria-label="Usuario activo">
+          <i class="fa-solid fa-circle-user" aria-hidden="true"></i>
+          <span id="currentUser">Cargando...</span>
+          <button class="icon-button" id="logoutButton" type="button" aria-label="Cerrar sesion" title="Cerrar sesion">
+            <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+          </button>
+        </section>
+      </nav>
+    </header>
+
+    <main class="container-fluid dashboard-layout">
+      <aside class="side-rail" aria-label="Secciones">
+        <button class="rail-link active" type="button" data-section="overview">
+          <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+          <span>Resumen</span>
+        </button>
+        <button class="rail-link" type="button" data-section="appointments">
+          <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+          <span>Citas</span>
+        </button>
+        <button class="rail-link" type="button" data-section="calendar">
+          <i class="fa-solid fa-calendar-week" aria-hidden="true"></i>
+          <span>Calendario</span>
+        </button>
+        <button class="rail-link" type="button" data-section="reports">
+          <i class="fa-solid fa-notes-medical" aria-hidden="true"></i>
+          <span>Reportes</span>
+        </button>
+        <button class="rail-link" type="button" data-section="consents">
+          <i class="fa-solid fa-file-signature" aria-hidden="true"></i>
+          <span>Consentimientos</span>
+        </button>
+        <button class="rail-link admin-only d-none" type="button" data-section="users">
+          <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+          <span>Usuarios</span>
+        </button>
+        <button class="rail-link" type="button" data-section="assistant">
+          <i class="fa-solid fa-comments" aria-hidden="true"></i>
+          <span>Asistente</span>
+        </button>
+      </aside>
+
+      <section class="workspace">
+        <header class="workspace-header">
+          <p class="eyebrow">Operacion clinica</p>
+          <h1 id="workspaceTitle">Resumen</h1>
+          <button class="btn secondary-action" id="refreshButton" type="button">
+            <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+            Actualizar
+          </button>
+        </header>
+
+        <p class="form-feedback" id="dashboardFeedback" role="status" aria-live="polite"></p>
+
+        <section class="dashboard-section active" id="overviewSection" aria-labelledby="workspaceTitle">
+          <section class="stats-grid" id="statsGrid" aria-label="Estadisticas"></section>
+          <article class="glass-panel data-panel">
+            <header class="panel-header">
+              <p class="eyebrow">Estados</p>
+              <h2>Citas por estado</h2>
+            </header>
+            <section class="status-board" id="statusBoard"></section>
+          </article>
+        </section>
+
+        <section class="dashboard-section" id="appointmentsSection" aria-label="Gestion de citas">
+          <article class="glass-panel data-panel">
+            <header class="panel-header">
+              <p class="eyebrow">Agenda</p>
+              <h2>Nueva cita</h2>
+            </header>
+            <form class="data-form admin-clinical-only" id="appointmentForm">
+              <label>
+                Paciente
+                <select class="form-select" name="patientId" required></select>
+              </label>
+              <label>
+                Fisioterapeuta
+                <select class="form-select" name="physiotherapistId" required></select>
+              </label>
+              <label>
+                Titulo
+                <input class="form-control" name="title" type="text" minlength="3" required>
+              </label>
+              <label>
+                Tratamiento
+                <input class="form-control" name="treatmentType" type="text" value="Sesion de fisioterapia">
+              </label>
+              <label>
+                Inicio
+                <input class="form-control" name="startsAt" type="datetime-local" required>
+              </label>
+              <label>
+                Fin
+                <input class="form-control" name="endsAt" type="datetime-local" required>
+              </label>
+              <label>
+                Sala
+                <input class="form-control" name="room" type="text">
+              </label>
+              <label>
+                Estado
+                <select class="form-select" name="status">
+                  <option value="pending">Pendiente</option>
+                  <option value="scheduled">Programada</option>
+                </select>
+              </label>
+              <label class="wide-field">
+                Notas
+                <textarea class="form-control" name="notes" rows="3"></textarea>
+              </label>
+              <button class="btn primary-action" type="submit">
+                <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i>
+                Crear cita
+              </button>
+            </form>
+          </article>
+          <section class="records-grid" id="appointmentsList" aria-label="Listado de citas"></section>
+        </section>
+
+        <section class="dashboard-section" id="calendarSection" aria-label="Calendario de citas">
+          <article class="glass-panel data-panel calendar-panel">
+            <header class="panel-header calendar-header">
+              <section>
+                <p class="eyebrow">Agenda visual</p>
+                <h2 id="calendarTitle">Calendario</h2>
+              </section>
+              <nav class="calendar-controls" aria-label="Controles del calendario">
+                <button class="icon-button" id="prevMonthButton" type="button" aria-label="Mes anterior" title="Mes anterior">
+                  <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                </button>
+                <button class="icon-button" id="todayButton" type="button" aria-label="Ir a hoy" title="Ir a hoy">
+                  <i class="fa-solid fa-calendar-day" aria-hidden="true"></i>
+                </button>
+                <button class="icon-button" id="nextMonthButton" type="button" aria-label="Mes siguiente" title="Mes siguiente">
+                  <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+              </nav>
+            </header>
+            <section class="calendar-grid" id="calendarGrid" aria-label="Calendario mensual"></section>
+          </article>
+        </section>
+
+        <section class="dashboard-section" id="reportsSection" aria-label="Gestion de reportes">
+          <article class="glass-panel data-panel admin-clinical-only">
+            <header class="panel-header">
+              <p class="eyebrow">Clinica</p>
+              <h2>Nuevo reporte</h2>
+            </header>
+            <form class="data-form" id="reportForm">
+              <label>
+                Paciente
+                <select class="form-select" name="patientId" required></select>
+              </label>
+              <label>
+                Tipo
+                <select class="form-select" name="type">
+                  <option value="evolution">Evolucion</option>
+                  <option value="diagnostic">Diagnostico</option>
+                  <option value="discharge">Alta</option>
+                  <option value="incident">Incidencia</option>
+                </select>
+              </label>
+              <label>
+                Titulo
+                <input class="form-control" name="title" type="text" minlength="3" required>
+              </label>
+              <label class="wide-field">
+                Contenido
+                <textarea class="form-control" name="content" rows="4" required></textarea>
+              </label>
+              <label class="wide-field">
+                Diagnostico
+                <textarea class="form-control" name="diagnosis" rows="3"></textarea>
+              </label>
+              <label class="wide-field">
+                Plan de tratamiento
+                <textarea class="form-control" name="treatmentPlan" rows="3"></textarea>
+              </label>
+              <button class="btn primary-action" type="submit">
+                <i class="fa-solid fa-file-medical" aria-hidden="true"></i>
+                Crear reporte
+              </button>
+            </form>
+          </article>
+          <section class="records-grid" id="reportsList" aria-label="Listado de reportes"></section>
+        </section>
+
+        <section class="dashboard-section" id="consentsSection" aria-label="Gestion de consentimientos">
+          <article class="glass-panel data-panel admin-clinical-only">
+            <header class="panel-header">
+              <p class="eyebrow">Legal</p>
+              <h2>Nuevo consentimiento</h2>
+            </header>
+            <form class="data-form" id="consentForm">
+              <label>
+                Paciente
+                <select class="form-select" name="patientId" required></select>
+              </label>
+              <label>
+                Tipo
+                <select class="form-select" name="type">
+                  <option value="treatment">Tratamiento</option>
+                  <option value="data_processing">Datos</option>
+                  <option value="image_use">Imagen</option>
+                  <option value="telehealth">Teleconsulta</option>
+                </select>
+              </label>
+              <label>
+                Titulo
+                <input class="form-control" name="title" type="text" minlength="3" required>
+              </label>
+              <label class="wide-field">
+                Cuerpo
+                <textarea class="form-control" name="body" rows="4" required></textarea>
+              </label>
+              <label>
+                Expira
+                <input class="form-control" name="expiresAt" type="date">
+              </label>
+              <button class="btn primary-action" type="submit">
+                <i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i>
+                Emitir consentimiento
+              </button>
+            </form>
+          </article>
+          <section class="records-grid" id="consentsList" aria-label="Listado de consentimientos"></section>
+        </section>
+
+        <section class="dashboard-section" id="usersSection" aria-label="Gestion de usuarios">
+          <article class="glass-panel data-panel">
+            <header class="panel-header">
+              <p class="eyebrow">Admin</p>
+              <h2>Alta interna</h2>
+            </header>
+            <form class="data-form" id="userForm">
+              <label>
+                Nombre
+                <input class="form-control" name="name" type="text" minlength="2" required>
+              </label>
+              <label>
+                Email
+                <input class="form-control" name="email" type="email" required>
+              </label>
+              <label>
+                Password
+                <input class="form-control" name="password" type="password" minlength="8" required>
+              </label>
+              <label>
+                Rol
+                <select class="form-select" name="role" required>
+                  <option value="paciente">Paciente</option>
+                  <option value="fisioterapeuta">Fisioterapeuta</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </label>
+              <label>
+                Telefono
+                <input class="form-control" name="phone" type="tel">
+              </label>
+              <label>
+                DNI
+                <input class="form-control" name="dni" type="text">
+              </label>
+              <button class="btn primary-action" type="submit">
+                <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+                Crear usuario
+              </button>
+            </form>
+          </article>
+          <section class="records-grid" id="usersList" aria-label="Listado de usuarios"></section>
+        </section>
+
+        <section class="dashboard-section" id="assistantSection" aria-label="Asistente de admision Typebot">
+          <article class="glass-panel data-panel assistant-panel">
+            <header class="panel-header">
+              <p class="eyebrow">Typebot</p>
+              <h2>Asistente de admision PhysioSafe</h2>
+            </header>
+            <section class="assistant-actions" aria-label="Acciones Typebot">
+              <a class="btn primary-action" href="http://localhost:8081" target="_blank" rel="noopener">
+                <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
+                Abrir builder
+              </a>
+              <a class="btn secondary-action" href="http://localhost:8082" target="_blank" rel="noopener">
+                <i class="fa-solid fa-message" aria-hidden="true"></i>
+                Abrir viewer
+              </a>
+              <a class="btn secondary-action" href="/typebot-template.json" download>
+                <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i>
+                Descargar plantilla
+              </a>
+            </section>
+            <section class="webhook-card" aria-label="Webhook Typebot">
+              <article class="record-card">
+                <h3>Webhook de admision</h3>
+                <small>POST http://localhost:3000/api/typebot/intake</small>
+                <small>Header: X-PhysioSafe-Typebot-Secret</small>
+              </article>
+            </section>
+            <section class="typebot-frame-shell" aria-label="Vista Typebot">
+              <iframe class="typebot-frame" src="http://localhost:8081" title="Typebot Builder"></iframe>
+            </section>
+          </article>
+          <article class="glass-panel data-panel">
+            <header class="panel-header">
+              <p class="eyebrow">Flujo recomendado</p>
+              <h2>Plantilla incluida</h2>
+            </header>
+            <section class="records-grid compact-records">
+              <article class="record-card">
+                <h3>Admision</h3>
+                <small>Recoge nombre, telefono, email, motivo de consulta y preferencia horaria.</small>
+              </article>
+              <article class="record-card">
+                <h3>Triaje</h3>
+                <small>Pregunta dolor, urgencia, zona afectada y derivacion medica.</small>
+              </article>
+              <article class="record-card">
+                <h3>Consentimiento</h3>
+                <small>Prepara la informacion para que el equipo emita el consentimiento dentro de PhysioSafe.</small>
+              </article>
+            </section>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <script src="/dashboard.js"></script>
+  </body>
+</html>

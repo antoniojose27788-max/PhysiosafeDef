@@ -1,0 +1,122 @@
+services:
+  db:
+    image: postgres:15
+    container_name: physiosafe_db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PUBLIC_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME} -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - physio-network
+
+  web-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: physiosafe_web
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      FRONTEND_URL: ${FRONTEND_URL}
+      CORS_ORIGIN: ${FRONTEND_URL}
+    ports:
+      - "${APP_PORT}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - physio-network
+
+  typebot-viewer:
+    image: baptistearno/typebot-viewer:latest
+    container_name: physiosafe_bot_viewer
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
+      TYPEBOT_WEBHOOK_SECRET: ${TYPEBOT_WEBHOOK_SECRET}
+      CORS_ORIGIN: "*"
+    ports:
+      - "${TYPEBOT_VIEWER_PORT}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - physio-network
+
+  typebot-builder:
+    image: baptistearno/typebot-builder:latest
+    container_name: physiosafe_bot_builder
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
+      TYPEBOT_WEBHOOK_SECRET: ${TYPEBOT_WEBHOOK_SECRET}
+      NEXTAUTH_URL: ${TYPEBOT_BUILDER_URL}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXT_PUBLIC_VIEWER_URL: ${TYPEBOT_VIEWER_URL}
+    ports:
+      - "${TYPEBOT_BUILDER_PORT}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      typebot-viewer:
+        condition: service_started
+    networks:
+      - physio-network
+
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: physiosafe_npm
+    restart: unless-stopped
+    ports:
+      - "${NPM_HTTP_PORT}:80"
+      - "${NPM_HTTPS_PORT}:443"
+      - "${NPM_ADMIN_PORT}:81"
+    volumes:
+      - ./nginx/data:/data
+      - ./nginx/letsencrypt:/etc/letsencrypt
+    networks:
+      - physio-network
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: physiosafe_tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    depends_on:
+      - nginx-proxy-manager
+    networks:
+      - physio-network
+    profiles:
+      - tunnel
+
+volumes:
+  postgres_data:
+
+networks:
+  physio-network:
+    driver: bridge

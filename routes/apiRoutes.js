@@ -19,12 +19,20 @@ router
   .patch(authorize('admin'), apiController.updateUser)
   .delete(authorize('admin'), apiController.deleteUser);
 
-router.get('/directory', authorize('admin', 'fisioterapeuta'), apiController.listDirectory);
+router.get('/directory', authorize('admin', 'fisioterapeuta', 'paciente'), apiController.listDirectory);
+router.get('/availability', apiController.listAvailability);
+
+router
+  .route('/schedule-blocks')
+  .get(authorize('admin', 'fisioterapeuta'), apiController.listScheduleBlocks)
+  .post(authorize('admin', 'fisioterapeuta'), apiController.createScheduleBlock);
+
+router.delete('/schedule-blocks/:id', authorize('admin', 'fisioterapeuta'), apiController.deleteScheduleBlock);
 
 router
   .route('/appointments')
   .get(apiController.listAppointments)
-  .post(authorize('admin', 'fisioterapeuta'), apiController.createAppointment);
+  .post(authorize('admin', 'fisioterapeuta', 'paciente'), apiController.createAppointment);
 
 router
   .route('/appointments/:id')

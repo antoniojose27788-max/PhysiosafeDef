@@ -8,6 +8,8 @@ const state = {
   patients: [],
   physiotherapists: [],
   appointments: [],
+  scheduleBlocks: [],
+  availability: [],
   calendarDate: new Date()
 };
 
@@ -68,6 +70,11 @@ const formatDate = (value) =>
       }).format(new Date(value))
     : 'Sin fecha';
 
+const parseDateOnly = (value) => {
+  const [year, month, day] = String(value).split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 const roleLabel = (role) =>
   ({
     admin: 'Admin',
@@ -100,6 +107,76 @@ const fillSelect = (selector, items, placeholder) => {
   });
 };
 
+const fillScheduleBlockPhysioSelect = () => {
+  document.querySelectorAll('#scheduleBlockForm select[name="physiotherapistId"]').forEach((select) => {
+    const allOption = state.user?.role === 'admin' ? '<option value="">Toda la clinica</option>' : '';
+    select.innerHTML =
+      allOption +
+      state.physiotherapists.map((item) => `<option value="${item.id}">${item.name} - ${item.email}</option>`).join('');
+
+    if (state.user?.role === 'fisioterapeuta') {
+      select.value = state.user.id;
+      select.setAttribute('disabled', 'disabled');
+    } else {
+      select.removeAttribute('disabled');
+    }
+  });
+};
+
+const configureAppointmentFormForRole = () => {
+  const form = document.querySelector('#appointmentForm');
+  if (!form || !state.user) return;
+
+  const patientSelect = form.elements.patientId;
+  const physiotherapistSelect = form.elements.physiotherapistId;
+  const statusSelect = form.elements.status;
+  const titleInput = form.elements.title;
+  const treatmentInput = form.elements.treatmentType;
+  const notesInput = form.elements.notes;
+  const submitButton = form.querySelector('button[type="submit"]');
+
+  if (state.user.role === 'paciente') {
+    if (patientSelect) {
+      patientSelect.value = state.user.id;
+      patientSelect.setAttribute('disabled', 'disabled');
+    }
+
+    if (physiotherapistSelect && !physiotherapistSelect.value && state.physiotherapists.length) {
+      physiotherapistSelect.value = state.physiotherapists[0].id;
+    }
+
+    if (statusSelect) {
+      statusSelect.value = 'pending';
+      statusSelect.setAttribute('disabled', 'disabled');
+    }
+
+    if (titleInput && !titleInput.value) {
+      titleInput.value = 'Solicitud de cita de fisioterapia';
+    }
+
+    if (treatmentInput && !treatmentInput.value) {
+      treatmentInput.value = 'Valoracion inicial';
+    }
+
+    if (notesInput) {
+      notesInput.placeholder = 'Describe brevemente el motivo, zona afectada, dolor y disponibilidad.';
+    }
+
+    if (submitButton) {
+      submitButton.innerHTML = '<i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Solicitar cita';
+    }
+
+    return;
+  }
+
+  patientSelect?.removeAttribute('disabled');
+  statusSelect?.removeAttribute('disabled');
+
+  if (submitButton) {
+    submitButton.innerHTML = '<i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Crear cita';
+  }
+};
+
 const loadMe = async () => {
   const { user } = await request('/auth/me');
   state.user = user;
@@ -113,16 +190,22 @@ const loadMe = async () => {
 
 const loadUsers = async () => {
   if (state.user.role !== 'admin') {
-    if (state.user.role === 'fisioterapeuta') {
+    if (['fisioterapeuta', 'paciente'].includes(state.user.role)) {
       const { patients, physiotherapists } = await request('/directory');
       state.patients = patients;
       state.physiotherapists = physiotherapists;
       fillSelect('select[name="patientId"]', state.patients, 'Selecciona paciente');
       fillSelect('select[name="physiotherapistId"]', state.physiotherapists, 'Selecciona fisioterapeuta');
-      document.querySelectorAll('select[name="physiotherapistId"]').forEach((select) => {
-        select.value = state.user.id;
-        select.setAttribute('disabled', 'disabled');
-      });
+
+      if (state.user.role === 'fisioterapeuta') {
+        document.querySelectorAll('select[name="physiotherapistId"]').forEach((select) => {
+          select.value = state.user.id;
+          select.setAttribute('disabled', 'disabled');
+        });
+      }
+
+      fillScheduleBlockPhysioSelect();
+      configureAppointmentFormForRole();
     }
     return;
   }
@@ -133,7 +216,129 @@ const loadUsers = async () => {
   state.physiotherapists = users.filter((user) => user.role === 'fisioterapeuta');
   fillSelect('select[name="patientId"]', state.patients, 'Selecciona paciente');
   fillSelect('select[name="physiotherapistId"]', state.physiotherapists, 'Selecciona fisioterapeuta');
+  fillScheduleBlockPhysioSelect();
+  configureAppointmentFormForRole();
   renderUsers(users);
+};
+
+const readAppointmentForm = (form) => {
+  const payload = readForm(form);
+
+  if (state.user?.role === 'paciente') {
+    payload.patientId = state.user.id;
+    payload.status = 'pending';
+    payload.title = payload.title || 'Solicitud de cita de fisioterapia';
+    payload.treatmentType = payload.treatmentType || 'Valoracion inicial';
+
+    if (!payload.physiotherapistId) {
+      throw new Error('Selecciona un fisioterapeuta para solicitar la cita.');
+    }
+  }
+
+  if (state.user?.role === 'fisioterapeuta') {
+    payload.physiotherapistId = state.user.id;
+  }
+
+  return payload;
+};
+
+const getAvailabilityRange = () => {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 20);
+  return { start: start.toISOString(), end: end.toISOString() };
+};
+
+const loadAvailability = async () => {
+  const form = document.querySelector('#appointmentForm');
+  const panel = document.querySelector('#availabilityPanel');
+  const physiotherapistId = form?.elements.physiotherapistId?.value;
+
+  if (!panel || !physiotherapistId) {
+    if (panel) panel.innerHTML = '';
+    return;
+  }
+
+  const { start, end } = getAvailabilityRange();
+  const query = new URLSearchParams({ physiotherapistId, start, end });
+  const { days } = await request(`/availability?${query.toString()}`);
+  state.availability = days;
+  renderAvailability(days);
+};
+
+const renderAvailability = (days) => {
+  const panel = document.querySelector('#availabilityPanel');
+  if (!panel) return;
+
+  panel.innerHTML = `
+    <header class="availability-header">
+      <p class="eyebrow">Disponibilidad real</p>
+      <h3>Elige un hueco disponible</h3>
+      <small>Los dias no laborables, bloqueados o completos no se pueden reservar.</small>
+    </header>
+    <section class="availability-days">
+      ${days
+        .map(
+          (day) => `
+            <article class="availability-day ${day.status}">
+              <header>
+                <strong>${new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: '2-digit', month: 'short' }).format(parseDateOnly(day.date))}</strong>
+                <span>${day.status === 'available' ? `${day.slots.length} huecos` : day.reason}</span>
+              </header>
+              ${
+                day.slots.length
+                  ? `<section class="availability-slots">${day.slots
+                      .slice(0, 6)
+                      .map(
+                        (slot) =>
+                          `<button class="mini-action" type="button" data-slot-start="${slot.startsAt}" data-slot-end="${slot.endsAt}">${slot.label}</button>`
+                      )
+                      .join('')}</section>`
+                  : ''
+              }
+            </article>
+          `
+        )
+        .join('')}
+    </section>
+  `;
+};
+
+const renderScheduleBlocks = () => {
+  const target = document.querySelector('#scheduleBlocksList');
+  if (!target) return;
+
+  const upcoming = state.scheduleBlocks.filter((block) => new Date(block.date) >= new Date(new Date().toDateString()));
+  if (!upcoming.length) {
+    renderEmpty(target, 'Sin dias bloqueados');
+    return;
+  }
+
+  target.innerHTML = upcoming
+    .map(
+      (block) => `
+        <article class="record-card">
+          <header>
+            <h3>${new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' }).format(parseDateOnly(block.date))}</h3>
+            <span class="status-badge pending">No laborable</span>
+          </header>
+          <small>${block.physiotherapist?.name || 'Toda la clinica'}</small>
+          <p>${block.reason}</p>
+          <section class="record-actions">
+            <button class="mini-action" type="button" data-schedule-block-delete="${block.id}">Quitar bloqueo</button>
+          </section>
+        </article>
+      `
+    )
+    .join('');
+};
+
+const loadScheduleBlocks = async () => {
+  if (!['admin', 'fisioterapeuta'].includes(state.user?.role)) return;
+  const { blocks } = await request('/schedule-blocks');
+  state.scheduleBlocks = blocks;
+  renderScheduleBlocks();
 };
 
 const loadStats = async () => {
@@ -199,6 +404,10 @@ const loadAppointments = async () => {
   renderCalendar();
 };
 
+document.querySelector('#appointmentForm select[name="physiotherapistId"]').addEventListener('change', () => {
+  loadAvailability().catch((error) => setFeedback(error.message, 'error'));
+});
+
 const sameDay = (left, right) =>
   left.getFullYear() === right.getFullYear() &&
   left.getMonth() === right.getMonth() &&
@@ -234,11 +443,13 @@ const renderCalendar = () => {
     date.setDate(monthStart.getDate() + index);
 
     const appointments = state.appointments.filter((appointment) => sameDay(new Date(appointment.startsAt), date));
+    const scheduleBlock = state.scheduleBlocks.find((block) => block.date === date.toISOString().slice(0, 10));
     const muted = date.getMonth() !== visibleMonth ? 'muted-day' : '';
     const current = sameDay(date, today) ? 'today-day' : '';
+    const blocked = scheduleBlock || [0, 6].includes(date.getDay()) ? 'blocked-day' : '';
 
     days.push(`
-      <article class="calendar-day ${muted} ${current}">
+      <article class="calendar-day ${muted} ${current} ${blocked}">
         <header>
           <strong>${date.getDate()}</strong>
           ${appointments.length ? `<span>${appointments.length}</span>` : ''}
@@ -256,6 +467,7 @@ const renderCalendar = () => {
             )
             .join('')}
           ${appointments.length > 3 ? `<small>+${appointments.length - 3} mas</small>` : ''}
+          ${scheduleBlock ? `<small class="calendar-block-label">${scheduleBlock.reason}</small>` : ''}
         </section>
       </article>
     `);
@@ -355,7 +567,9 @@ const refreshAll = async () => {
   setFeedback('Actualizando datos...');
   await loadMe();
   await loadUsers();
-  await Promise.all([loadStats(), loadAppointments(), loadReports(), loadConsents()]);
+  await Promise.all([loadStats(), loadAppointments(), loadReports(), loadConsents(), loadScheduleBlocks()]);
+  renderCalendar();
+  await loadAvailability();
   setFeedback('Datos sincronizados.', 'success');
 };
 
@@ -403,7 +617,26 @@ document.querySelector('#appointmentForm').addEventListener('submit', async (eve
   try {
     await request('/appointments', {
       method: 'POST',
-      body: JSON.stringify(readForm(event.currentTarget))
+      body: JSON.stringify(readAppointmentForm(event.currentTarget))
+    });
+    event.currentTarget.reset();
+    await refreshAll();
+  } catch (error) {
+    setFeedback(error.message, 'error');
+  }
+});
+
+document.querySelector('#scheduleBlockForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  try {
+    const payload = readForm(event.currentTarget);
+    if (state.user?.role === 'fisioterapeuta') {
+      payload.physiotherapistId = state.user.id;
+    }
+
+    await request('/schedule-blocks', {
+      method: 'POST',
+      body: JSON.stringify(payload)
     });
     event.currentTarget.reset();
     await refreshAll();
@@ -459,8 +692,17 @@ document.addEventListener('click', async (event) => {
   const signAction = event.target.closest('[data-consent-sign]');
   const revokeAction = event.target.closest('[data-consent-revoke]');
   const disableAction = event.target.closest('[data-user-disable]');
+  const slotAction = event.target.closest('[data-slot-start]');
+  const scheduleBlockDeleteAction = event.target.closest('[data-schedule-block-delete]');
 
   try {
+    if (slotAction) {
+      const form = document.querySelector('#appointmentForm');
+      form.elements.startsAt.value = slotAction.dataset.slotStart.slice(0, 16);
+      form.elements.endsAt.value = slotAction.dataset.slotEnd.slice(0, 16);
+      setFeedback('Hueco seleccionado. Revisa los datos y confirma la cita.', 'success');
+    }
+
     if (appointmentAction) {
       const [id, status] = appointmentAction.dataset.appointmentStatus.split(':');
       await request(`/appointments/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
@@ -487,6 +729,11 @@ document.addEventListener('click', async (event) => {
       await request(`/users/${disableAction.dataset.userDisable}`, { method: 'DELETE' });
       await refreshAll();
     }
+
+    if (scheduleBlockDeleteAction) {
+      await request(`/schedule-blocks/${scheduleBlockDeleteAction.dataset.scheduleBlockDelete}`, { method: 'DELETE' });
+      await refreshAll();
+    }
   } catch (error) {
     setFeedback(error.message, 'error');
   }
@@ -494,52 +741,148 @@ document.addEventListener('click', async (event) => {
 
 const assistantKnowledge = [
   {
-    keywords: ['admin', 'usuario', 'usuarios', 'fisio', 'fisioterapeuta', 'crear fisio', 'alta'],
+    keywords: ['admin', 'usuario', 'usuarios', 'fisio', 'fisioterapeuta', 'crear fisio', 'alta', 'crear usuario'],
     section: 'users',
     answer:
       'Para dar altas internas, entra en Usuarios. El admin puede crear pacientes, fisioterapeutas y otros admins. El registro publico solo crea pacientes.'
   },
   {
-    keywords: ['cita', 'citas', 'solape', 'agenda', 'crear cita', 'nueva cita'],
-    section: 'appointments',
+    keywords: ['desactivar usuario', 'baja usuario', 'eliminar usuario', 'permisos', 'roles'],
+    section: 'users',
     answer:
-      'Para crear una cita, abre Citas, elige paciente, fisioterapeuta, inicio y fin. PhysioSafe bloquea solapes activos para el mismo fisioterapeuta.'
+      'En Usuarios puedes revisar roles y desactivar cuentas. Es una seccion solo para admin porque controla permisos de acceso a datos clinicos.'
   },
   {
-    keywords: ['calendario', 'mes', 'dia', 'agenda visual'],
+    keywords: ['paciente nuevo', 'registrar paciente', 'alta paciente'],
+    section: 'users',
+    answer:
+      'Un paciente puede registrarse desde la portada, pero el admin tambien puede crearlo desde Usuarios si necesita preparar su ficha antes de la primera cita.'
+  },
+  {
+    keywords: ['cita', 'citas', 'solape', 'agenda', 'crear cita', 'nueva cita', 'solicitar cita'],
+    section: 'appointments',
+    answer:
+      'Para crear o solicitar una cita, abre Citas, elige fisioterapeuta, inicio y fin. Si eres paciente, la cita queda como pendiente para que el equipo la revise.'
+  },
+  {
+    keywords: ['cita paciente', 'soy paciente', 'pedir cita', 'reservar cita', 'cliente'],
+    section: 'appointments',
+    answer:
+      'Como paciente puedes solicitar una cita desde Citas. Tu usuario queda asignado automaticamente, eliges fisioterapeuta y horario, y el estado queda pendiente.'
+  },
+  {
+    keywords: ['disponible', 'disponibilidad', 'hueco', 'huecos libres', 'dias disponibles'],
+    section: 'appointments',
+    answer:
+      'Al elegir fisioterapeuta, PhysioSafe muestra los proximos dias con huecos reales. Los dias bloqueados, fines de semana o completos no se pueden reservar.'
+  },
+  {
+    keywords: ['bloquear dia', 'dia no laborable', 'no se trabaja', 'vacaciones'],
+    section: 'calendar',
+    answer:
+      'Admin y fisioterapeutas pueden bloquear dias no laborables desde Calendario. Esos dias dejan de aparecer como disponibles para los pacientes.'
+  },
+  {
+    keywords: ['horario laboral', 'fuera de horario', 'hora disponible'],
+    section: 'appointments',
+    answer:
+      'El horario base de reserva es de lunes a viernes, de 09:00 a 18:00, en bloques de una hora. El sistema evita solapes y dias bloqueados.'
+  },
+  {
+    keywords: ['cancelar cita', 'completar cita', 'validar cita', 'estado cita'],
+    section: 'appointments',
+    answer:
+      'El equipo clinico puede completar, validar o cancelar citas desde cada tarjeta. El paciente puede consultar sus citas, pero no validar actividad clinica.'
+  },
+  {
+    keywords: ['calendario', 'mes', 'dia', 'agenda visual', 'ver agenda'],
     section: 'calendar',
     answer:
       'El Calendario muestra las citas por mes y estado. Usa las flechas para moverte entre meses o el boton central para volver a hoy.'
   },
   {
-    keywords: ['completar', 'validar', 'validada', 'pendiente', 'estado'],
-    section: 'appointments',
+    keywords: ['hoy', 'citas de hoy', 'proxima cita', 'proximas citas'],
+    section: 'calendar',
     answer:
-      'Una cita nace como pendiente o programada. Cuando termina, el equipo clinico puede marcarla como completada o validada desde la tarjeta de la cita.'
+      'Puedes ver la actividad del dia en Resumen y el detalle mensual en Calendario. Si preguntas por proximas citas, tambien puedo resumir lo que esta cargado en tu vista.'
   },
   {
-    keywords: ['reporte', 'reportes', 'informe', 'diagnostico', 'tratamiento'],
+    keywords: ['mes anterior', 'mes siguiente', 'volver a hoy', 'navegar calendario'],
+    section: 'calendar',
+    answer:
+      'En Calendario, los botones de flecha cambian de mes y el boton central vuelve a hoy. Cada dia muestra hasta tres citas y un contador si hay mas.'
+  },
+  {
+    keywords: ['reporte', 'reportes', 'informe', 'diagnostico', 'tratamiento', 'evolucion'],
     section: 'reports',
     answer:
       'Los reportes clinicos los crean admin o fisioterapeutas. Sirven para evolucion, diagnostico, alta o incidencias, siempre asociados a un paciente.'
   },
   {
-    keywords: ['consentimiento', 'firmar', 'firma', 'legal'],
+    keywords: ['alta', 'informe alta', 'incidencia', 'plan tratamiento'],
+    section: 'reports',
+    answer:
+      'En Reportes puedes documentar evolucion, diagnostico, alta o incidencias. El plan de tratamiento ayuda a dejar claro el siguiente objetivo terapeutico.'
+  },
+  {
+    keywords: ['ver mis informes', 'mis reportes', 'historial clinico'],
+    section: 'reports',
+    answer:
+      'Si eres paciente, Reportes te muestra tus informes visibles. Si eres fisio, ves los reportes relacionados con tus pacientes o autoria.'
+  },
+  {
+    keywords: ['consentimiento', 'firmar', 'firma', 'legal', 'documento'],
     section: 'consents',
     answer:
       'El equipo clinico emite consentimientos. El paciente puede firmarlos desde su panel si estan pendientes, y el sistema guarda fecha y firma.'
   },
   {
-    keywords: ['typebot', 'bot', 'asistente', 'webhook', 'admision', 'plantilla'],
-    section: 'assistant',
+    keywords: ['revocar consentimiento', 'cancelar consentimiento', 'datos', 'imagen', 'teleconsulta'],
+    section: 'consents',
     answer:
-      'En Asistente tienes Typebot Builder, Viewer, plantilla JSON y webhook /api/typebot/intake. Ese webhook puede crear o actualizar pacientes desde admisiones.'
+      'En Consentimientos se gestionan documentos de tratamiento, datos, imagen y teleconsulta. Un consentimiento puede firmarse o revocarse segun el estado.'
   },
   {
-    keywords: ['resumen', 'estadisticas', 'stats', 'dashboard'],
+    keywords: ['consentimiento pendiente', 'pendiente de firmar', 'firmar documento'],
+    section: 'consents',
+    answer:
+      'Si tienes documentos pendientes, abre Consentimientos y usa Firmar en la tarjeta correspondiente. La firma queda asociada a tu usuario.'
+  },
+  {
+    keywords: ['typebot', 'bot', 'asistente', 'webhook', 'admision', 'plantilla', 'triaje'],
+    section: 'assistant',
+    answer:
+      'En Asistente tienes el centro de admision: puedes probar el flujo, editarlo en Typebot, descargar la plantilla y conectar el webhook /api/typebot/intake.'
+  },
+  {
+    keywords: ['probar asistente', 'editar flujo', 'builder', 'viewer'],
+    section: 'assistant',
+    answer:
+      'Usa Probar asistente para ver la experiencia del paciente y Editar flujo para ajustar preguntas. La plantilla JSON te sirve como punto de partida.'
+  },
+  {
+    keywords: ['admisiones', 'primera visita', 'motivo consulta', 'dolor'],
+    section: 'assistant',
+    answer:
+      'El flujo de admision debe recoger motivo, dolor, zona afectada, urgencia y disponibilidad. Con eso el equipo puede preparar mejor la primera visita.'
+  },
+  {
+    keywords: ['resumen', 'estadisticas', 'stats', 'dashboard', 'indicadores'],
     section: 'overview',
     answer:
       'El Resumen muestra usuarios, pacientes activos, citas de hoy, proximas citas, consentimientos y reportes. Usa Actualizar para sincronizar datos.'
+  },
+  {
+    keywords: ['actualizar datos', 'sincronizar', 'recargar panel'],
+    section: 'overview',
+    answer:
+      'El boton Actualizar vuelve a pedir datos al servidor: estadisticas, citas, reportes, consentimientos y usuarios segun tu rol.'
+  },
+  {
+    keywords: ['que puedo hacer', 'mi rol', 'permisos disponibles'],
+    section: 'overview',
+    answer:
+      'Tus permisos dependen del rol: admin gestiona todo, fisio trabaja con pacientes y actividad clinica, paciente solicita citas y consulta sus documentos.'
   }
 ];
 
@@ -560,12 +903,14 @@ const buildAssistant = () => {
         </button>
       </header>
       <section class="assistant-messages" aria-live="polite">
-        <article class="assistant-message bot">Estoy conectado al panel. Preguntame por citas, calendario, usuarios, reportes, consentimientos o Typebot.</article>
+        <article class="assistant-message bot">Estoy conectado al panel. Puedo ayudarte con citas, calendario, usuarios, reportes, consentimientos, resumen y admision.</article>
       </section>
       <nav class="assistant-suggestions" aria-label="Preguntas sugeridas">
-        <button type="button">Como valido una cita?</button>
-        <button type="button">Donde creo fisios?</button>
-        <button type="button">Como conecto Typebot?</button>
+        <button type="button">Como pide cita un paciente?</button>
+        <button type="button">Que dias estan disponibles?</button>
+        <button type="button">Que consentimientos tengo pendientes?</button>
+        <button type="button">Como preparo la admision?</button>
+        <button type="button">Que puedo hacer con mi rol?</button>
       </nav>
       <form class="assistant-form">
         <label>

@@ -105,9 +105,19 @@ const assistantKnowledge = [
       'Si la base esta vacia, el registro cambia a Primer admin. Crea ese usuario una sola vez; despues gestionara fisios, pacientes y permisos desde el dashboard.'
   },
   {
+    keywords: ['permisos', 'roles', 'que ve cada rol'],
+    answer:
+      'PhysioSafe separa permisos: admin gestiona usuarios y configuracion, fisios trabajan con agenda clinica, y pacientes solicitan citas y consultan sus documentos.'
+  },
+  {
     keywords: ['registro', 'registrar', 'cuenta', 'sign in', 'signup'],
     answer:
       'El registro publico es para pacientes. Rellena nombre, email y password; entraras directamente al panel como paciente.'
+  },
+  {
+    keywords: ['paciente', 'cliente', 'alta paciente'],
+    answer:
+      'Un paciente puede crear su cuenta desde Registro paciente. Despues podra entrar al dashboard, solicitar citas y revisar reportes o consentimientos.'
   },
   {
     keywords: ['fisio', 'fisioterapeuta', 'trabajador', 'empleado'],
@@ -115,19 +125,44 @@ const assistantKnowledge = [
       'Los fisioterapeutas no se registran libremente. Los crea un admin desde Usuarios para mantener el control de acceso clinico.'
   },
   {
-    keywords: ['login', 'entrar', 'acceso'],
+    keywords: ['login', 'entrar', 'acceso', 'iniciar sesion'],
     answer:
       'Usa Login si ya tienes cuenta. Admin, fisios y pacientes entran por el mismo formulario, pero cada rol ve permisos distintos.'
   },
   {
-    keywords: ['cita', 'citas', 'agenda'],
+    keywords: ['password', 'contrasena', 'credenciales'],
     answer:
-      'Las citas se gestionan dentro del dashboard. Admin y fisios pueden crearlas; los pacientes pueden consultar las suyas.'
+      'La password debe tener al menos 8 caracteres. Si ya tienes una cuenta creada por la clinica, entra con el email asignado.'
   },
   {
-    keywords: ['typebot', 'bot', 'asistente'],
+    keywords: ['cita', 'citas', 'agenda', 'solicitar cita', 'pedir cita'],
     answer:
-      'Typebot esta integrado para admisiones. Cuando entres al dashboard veras la seccion Asistente con builder, viewer, plantilla y webhook.'
+      'Las citas se gestionan dentro del dashboard. Admin y fisios pueden crearlas, y los pacientes pueden solicitar una cita pendiente con un fisioterapeuta.'
+  },
+  {
+    keywords: ['disponibilidad', 'dias disponibles', 'huecos', 'horario'],
+    answer:
+      'Dentro del dashboard, al elegir fisioterapeuta se muestran huecos disponibles. Los dias bloqueados, fines de semana o completos no se pueden reservar.'
+  },
+  {
+    keywords: ['calendario', 'horario', 'disponibilidad'],
+    answer:
+      'El calendario esta dentro del dashboard y muestra las citas por mes. Sirve para revisar carga de trabajo, proximas sesiones y estados.'
+  },
+  {
+    keywords: ['consentimiento', 'firmar', 'reportes', 'informe'],
+    answer:
+      'Reportes y consentimientos estan en el panel. El equipo clinico emite documentos, y el paciente puede consultar informes y firmar consentimientos pendientes.'
+  },
+  {
+    keywords: ['typebot', 'bot', 'asistente', 'admision', 'triaje'],
+    answer:
+      'Typebot esta integrado para admisiones. En el dashboard, la seccion Asistente explica el flujo, permite probarlo, editarlo y descargar la plantilla.'
+  },
+  {
+    keywords: ['dolor', 'primera visita', 'motivo consulta'],
+    answer:
+      'El asistente de admision puede recoger motivo de consulta, dolor, zona afectada y disponibilidad para preparar mejor la primera cita.'
   }
 ];
 
@@ -148,12 +183,12 @@ const buildAssistant = () => {
         </button>
       </header>
       <section class="assistant-messages" aria-live="polite">
-        <article class="assistant-message bot">Hola. Te ayudo a entrar, registrarte como paciente o crear el primer admin si el sistema esta vacio.</article>
+        <article class="assistant-message bot">Hola. Te ayudo con acceso, registro, roles, citas, consentimientos, reportes y admision.</article>
       </section>
       <nav class="assistant-suggestions" aria-label="Preguntas sugeridas">
         <button type="button">Como creo el primer admin?</button>
-        <button type="button">Puede registrarse un fisio?</button>
-        <button type="button">Como entra un paciente?</button>
+        <button type="button">Como pide cita un paciente?</button>
+        <button type="button">Para que sirve el asistente?</button>
       </nav>
       <form class="assistant-form">
         <label>

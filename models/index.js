@@ -4,6 +4,7 @@ const User = require('./User')(sequelize);
 const Appointment = require('./Appointment')(sequelize);
 const Report = require('./Report')(sequelize);
 const Consent = require('./Consent')(sequelize);
+const ScheduleBlock = require('./ScheduleBlock')(sequelize);
 
 User.hasMany(Appointment, {
   as: 'patientAppointments',
@@ -82,10 +83,33 @@ Consent.belongsTo(User, {
   foreignKey: 'issuedById'
 });
 
+User.hasMany(ScheduleBlock, {
+  as: 'createdScheduleBlocks',
+  foreignKey: 'createdById',
+  onDelete: 'RESTRICT'
+});
+
+User.hasMany(ScheduleBlock, {
+  as: 'scheduleBlocks',
+  foreignKey: 'physiotherapistId',
+  onDelete: 'CASCADE'
+});
+
+ScheduleBlock.belongsTo(User, {
+  as: 'createdBy',
+  foreignKey: 'createdById'
+});
+
+ScheduleBlock.belongsTo(User, {
+  as: 'physiotherapist',
+  foreignKey: 'physiotherapistId'
+});
+
 module.exports = {
   sequelize,
   User,
   Appointment,
   Report,
-  Consent
+  Consent,
+  ScheduleBlock
 };

@@ -112,9 +112,9 @@
           <article class="glass-panel data-panel">
             <header class="panel-header">
               <p class="eyebrow">Agenda</p>
-              <h2>Nueva cita</h2>
+              <h2>Nueva cita o solicitud</h2>
             </header>
-            <form class="data-form admin-clinical-only" id="appointmentForm">
+            <form class="data-form" id="appointmentForm">
               <label>
                 Paciente
                 <select class="form-select" name="patientId" required></select>
@@ -159,6 +159,7 @@
                 Crear cita
               </button>
             </form>
+            <section class="availability-panel" id="availabilityPanel" aria-live="polite"></section>
           </article>
           <section class="records-grid" id="appointmentsList" aria-label="Listado de citas"></section>
         </section>
@@ -168,6 +169,31 @@
             <i class="fa-solid fa-calendar-check" aria-hidden="true"></i>
             <p>Visualiza la carga mensual y detecta rapidamente dias con actividad, sesiones completadas, cancelaciones o citas pendientes.</p>
           </section>
+          <article class="glass-panel data-panel admin-clinical-only">
+            <header class="panel-header">
+              <p class="eyebrow">Disponibilidad</p>
+              <h2>Bloquear dia no laborable</h2>
+            </header>
+            <form class="data-form" id="scheduleBlockForm">
+              <label>
+                Fisioterapeuta
+                <select class="form-select" name="physiotherapistId"></select>
+              </label>
+              <label>
+                Fecha
+                <input class="form-control" name="date" type="date" required>
+              </label>
+              <label class="wide-field">
+                Motivo
+                <input class="form-control" name="reason" type="text" value="Dia no laborable">
+              </label>
+              <button class="btn primary-action" type="submit">
+                <i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i>
+                Bloquear dia
+              </button>
+            </form>
+            <section class="records-grid compact-records" id="scheduleBlocksList" aria-label="Dias bloqueados"></section>
+          </article>
           <article class="glass-panel data-panel calendar-panel">
             <header class="panel-header calendar-header">
               <section>
@@ -337,53 +363,65 @@
             <i class="fa-solid fa-comments" aria-hidden="true"></i>
             <p>Conecta la admision digital con preguntas de triaje, preferencias horarias y datos basicos antes de la primera cita.</p>
           </section>
-          <article class="glass-panel data-panel assistant-panel">
+          <article class="glass-panel data-panel assistant-panel assistant-command-center">
             <header class="panel-header">
-              <p class="eyebrow">Typebot</p>
-              <h2>Asistente de admision PhysioSafe</h2>
+              <p class="eyebrow">Asistente inteligente</p>
+              <h2>Centro de admision y ayuda clinica</h2>
+              <p>Esta seccion sirve para preparar el circuito del paciente antes de llegar a consulta: admision, triaje, disponibilidad y envio al equipo.</p>
             </header>
+
+            <section class="assistant-dashboard-grid" aria-label="Objetivos del asistente">
+              <article class="assistant-metric-card">
+                <i class="fa-solid fa-clipboard-question" aria-hidden="true"></i>
+                <h3>Admision</h3>
+                <p>Recoge datos basicos, motivo de consulta, zona afectada y disponibilidad.</p>
+              </article>
+              <article class="assistant-metric-card">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                <h3>Triaje</h3>
+                <p>Ordena dolor, urgencia, evolucion del problema y posibles banderas rojas.</p>
+              </article>
+              <article class="assistant-metric-card">
+                <i class="fa-solid fa-route" aria-hidden="true"></i>
+                <h3>Siguiente paso</h3>
+                <p>Guia al paciente hacia solicitud de cita, firma de documentos o contacto clinico.</p>
+              </article>
+            </section>
+
             <section class="assistant-actions" aria-label="Acciones Typebot">
-              <a class="btn primary-action" href="http://localhost:8081" target="_blank" rel="noopener">
-                <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
-                Abrir builder
-              </a>
-              <a class="btn secondary-action" href="http://localhost:8082" target="_blank" rel="noopener">
+              <a class="btn primary-action" href="http://localhost:8082" target="_blank" rel="noopener">
                 <i class="fa-solid fa-message" aria-hidden="true"></i>
-                Abrir viewer
+                Probar asistente
+              </a>
+              <a class="btn secondary-action" href="http://localhost:8081" target="_blank" rel="noopener">
+                <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
+                Editar flujo
               </a>
               <a class="btn secondary-action" href="/typebot-template.json" download>
                 <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i>
                 Descargar plantilla
               </a>
             </section>
-            <section class="webhook-card" aria-label="Webhook Typebot">
+          </article>
+
+          <article class="glass-panel data-panel">
+            <header class="panel-header">
+              <p class="eyebrow">Configuracion</p>
+              <h2>Conexion con PhysioSafe</h2>
+            </header>
+            <section class="assistant-flow-grid">
               <article class="record-card">
                 <h3>Webhook de admision</h3>
                 <small>POST http://localhost:3000/api/typebot/intake</small>
                 <small>Header: X-PhysioSafe-Typebot-Secret</small>
               </article>
-            </section>
-            <section class="typebot-frame-shell" aria-label="Vista Typebot">
-              <iframe class="typebot-frame" src="http://localhost:8081" title="Typebot Builder"></iframe>
-            </section>
-          </article>
-          <article class="glass-panel data-panel">
-            <header class="panel-header">
-              <p class="eyebrow">Flujo recomendado</p>
-              <h2>Plantilla incluida</h2>
-            </header>
-            <section class="records-grid compact-records">
               <article class="record-card">
-                <h3>Admision</h3>
-                <small>Recoge nombre, telefono, email, motivo de consulta y preferencia horaria.</small>
+                <h3>Datos minimos</h3>
+                <small>Nombre, email, telefono, motivo, dolor, zona afectada y disponibilidad.</small>
               </article>
               <article class="record-card">
-                <h3>Triaje</h3>
-                <small>Pregunta dolor, urgencia, zona afectada y derivacion medica.</small>
-              </article>
-              <article class="record-card">
-                <h3>Consentimiento</h3>
-                <small>Prepara la informacion para que el equipo emita el consentimiento dentro de PhysioSafe.</small>
+                <h3>Resultado esperado</h3>
+                <small>Crea o actualiza al paciente y deja notas clinicas para preparar la primera cita.</small>
               </article>
             </section>
           </article>

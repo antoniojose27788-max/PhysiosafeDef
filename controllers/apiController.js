@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const { Op, fn, col } = require('sequelize');
-const { sequelize, User, Appointment, Report, Consent } = require('../models');
+const { sequelize, User, Appointment, Report, Consent, ScheduleBlock } = require('../models');
 
 const asyncHandler = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 
@@ -17,6 +17,19 @@ const isAdmin = (user) => user.role === 'admin';
 const isPhysio = (user) => user.role === 'fisioterapeuta';
 const isPatient = (user) => user.role === 'paciente';
 const isClosedAppointmentStatus = (status) => ['completed', 'validated', 'cancelled', 'no_show'].includes(status);
+const WORK_START_HOUR = 9;
+const WORK_END_HOUR = 18;
+const SLOT_MINUTES = 60;
+
+const toDateOnly = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
+};
+
+const isWeekend = (date) => [0, 6].includes(date.getDay());
+
+const overlaps = (leftStart, leftEnd, rightStart, rightEnd) => leftStart < rightEnd && leftEnd > rightStart;
 
 const getAppointmentWhereForUser = (user) => {
   if (isAdmin(user)) {
@@ -78,6 +91,48 @@ const ensureNoAppointmentOverlap = async ({ startsAt, endsAt, physiotherapistId,
 
   if (overlappingAppointment) {
     const error = new Error('La cita se solapa con otra cita activa del fisioterapeuta.');
+    error.status = 409;
+    throw error;
+  }
+};
+
+const ensureBookableSlot = async ({ startsAt, endsAt, physiotherapistId, transaction }) => {
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  const dateOnly = toDateOnly(start);
+
+  if (!dateOnly || Number.isNaN(end.getTime())) {
+    const error = new Error('Fecha de cita invalida.');
+    error.status = 400;
+    throw error;
+  }
+
+  if (isWeekend(start)) {
+    const error = new Error('Ese dia no esta disponible para citas.');
+    error.status = 409;
+    throw error;
+  }
+
+  if (
+    start.getHours() < WORK_START_HOUR ||
+    end.getHours() > WORK_END_HOUR ||
+    (end.getHours() === WORK_END_HOUR && end.getMinutes() > 0)
+  ) {
+    const error = new Error('La cita debe estar dentro del horario laboral de 09:00 a 18:00.');
+    error.status = 409;
+    throw error;
+  }
+
+  const block = await ScheduleBlock.findOne({
+    where: {
+      date: dateOnly,
+      [Op.or]: [{ physiotherapistId }, { physiotherapistId: null }]
+    },
+    transaction
+  });
+
+  if (block) {
+    const error = new Error(`Ese dia no esta disponible: ${block.reason}.`);
     error.status = 409;
     throw error;
   }
@@ -167,7 +222,7 @@ const listDirectory = asyncHandler(async (req, res) => {
   const users = await User.findAll({
     where: {
       isActive: true,
-      role: { [Op.in]: ['paciente', 'fisioterapeuta'] }
+      role: { [Op.in]: isPatient(req.user) ? ['fisioterapeuta'] : ['paciente', 'fisioterapeuta'] }
     },
     order: [
       ['role', 'ASC'],
@@ -176,7 +231,7 @@ const listDirectory = asyncHandler(async (req, res) => {
   });
 
   res.status(200).json({
-    patients: users.filter((user) => user.role === 'paciente'),
+    patients: isPatient(req.user) ? [req.user] : users.filter((user) => user.role === 'paciente'),
     physiotherapists: users.filter((user) => user.role === 'fisioterapeuta')
   });
 });
@@ -274,6 +329,158 @@ const listAppointments = asyncHandler(async (req, res) => {
   res.status(200).json({ appointments });
 });
 
+const listAvailability = asyncHandler(async (req, res) => {
+  const { physiotherapistId } = req.query;
+  const startDate = req.query.start ? new Date(req.query.start) : new Date();
+  const endDate = req.query.end ? new Date(req.query.end) : new Date(startDate);
+  endDate.setDate(endDate.getDate() + (req.query.end ? 0 : 20));
+
+  if (!physiotherapistId) {
+    return res.status(400).json({ message: 'Fisioterapeuta obligatorio para consultar disponibilidad.' });
+  }
+
+  if (!assertUuid(physiotherapistId, res)) return;
+
+  const physiotherapist = await User.findOne({
+    where: { id: physiotherapistId, role: 'fisioterapeuta', isActive: true }
+  });
+
+  if (!physiotherapist) {
+    return res.status(404).json({ message: 'Fisioterapeuta no encontrado.' });
+  }
+
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || startDate > endDate) {
+    return res.status(400).json({ message: 'Rango de fechas invalido.' });
+  }
+
+  const rangeStart = new Date(startDate);
+  rangeStart.setHours(0, 0, 0, 0);
+  const rangeEnd = new Date(endDate);
+  rangeEnd.setHours(23, 59, 59, 999);
+
+  const [appointments, blocks] = await Promise.all([
+    Appointment.findAll({
+      where: {
+        physiotherapistId,
+        status: { [Op.in]: ['pending', 'scheduled'] },
+        startsAt: { [Op.lt]: rangeEnd },
+        endsAt: { [Op.gt]: rangeStart }
+      },
+      order: [['startsAt', 'ASC']]
+    }),
+    ScheduleBlock.findAll({
+      where: {
+        date: { [Op.between]: [toDateOnly(rangeStart), toDateOnly(rangeEnd)] },
+        [Op.or]: [{ physiotherapistId }, { physiotherapistId: null }]
+      },
+      order: [['date', 'ASC']]
+    })
+  ]);
+
+  const days = [];
+  const cursor = new Date(rangeStart);
+
+  while (cursor <= rangeEnd) {
+    const date = toDateOnly(cursor);
+    const dayBlock = blocks.find((block) => block.date === date);
+    const slots = [];
+
+    if (!isWeekend(cursor) && !dayBlock) {
+      for (let hour = WORK_START_HOUR; hour < WORK_END_HOUR; hour += 1) {
+        const slotStart = new Date(cursor);
+        slotStart.setHours(hour, 0, 0, 0);
+        const slotEnd = new Date(slotStart);
+        slotEnd.setMinutes(slotEnd.getMinutes() + SLOT_MINUTES);
+        const busy = appointments.some((appointment) =>
+          overlaps(slotStart, slotEnd, new Date(appointment.startsAt), new Date(appointment.endsAt))
+        );
+
+        if (!busy && slotStart > new Date()) {
+          slots.push({
+            startsAt: slotStart.toISOString(),
+            endsAt: slotEnd.toISOString(),
+            label: new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' }).format(slotStart)
+          });
+        }
+      }
+    }
+
+    days.push({
+      date,
+      status: dayBlock || isWeekend(cursor) ? 'unavailable' : slots.length ? 'available' : 'full',
+      reason: dayBlock?.reason || (isWeekend(cursor) ? 'Dia no laborable' : slots.length ? null : 'Sin huecos libres'),
+      slots
+    });
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  res.status(200).json({ physiotherapist, days });
+});
+
+const listScheduleBlocks = asyncHandler(async (req, res) => {
+  const where = {};
+  if (isPhysio(req.user)) {
+    where[Op.or] = [{ physiotherapistId: req.user.id }, { physiotherapistId: null }];
+  }
+
+  const blocks = await ScheduleBlock.findAll({
+    where,
+    include: [
+      { model: User, as: 'physiotherapist', attributes: ['id', 'name', 'email', 'role'] },
+      { model: User, as: 'createdBy', attributes: ['id', 'name', 'email', 'role'] }
+    ],
+    order: [['date', 'ASC']]
+  });
+
+  res.status(200).json({ blocks });
+});
+
+const createScheduleBlock = asyncHandler(async (req, res) => {
+  const { physiotherapistId, date, reason } = req.body;
+  const resolvedPhysioId = isPhysio(req.user) ? req.user.id : physiotherapistId || null;
+
+  if (!date) {
+    return res.status(400).json({ message: 'La fecha es obligatoria.' });
+  }
+
+  if (resolvedPhysioId) {
+    const physiotherapist = await User.findOne({
+      where: { id: resolvedPhysioId, role: 'fisioterapeuta', isActive: true }
+    });
+
+    if (!physiotherapist) {
+      return res.status(400).json({ message: 'Fisioterapeuta no encontrado o inactivo.' });
+    }
+  }
+
+  const block = await ScheduleBlock.create({
+    physiotherapistId: resolvedPhysioId,
+    createdById: req.user.id,
+    date,
+    reason: reason || 'Dia no laborable'
+  });
+
+  res.status(201).json({ block });
+});
+
+const deleteScheduleBlock = asyncHandler(async (req, res) => {
+  if (!assertUuid(req.params.id, res)) return;
+
+  const where = { id: req.params.id };
+  if (isPhysio(req.user)) {
+    where.physiotherapistId = req.user.id;
+  }
+
+  const block = await ScheduleBlock.findOne({ where });
+  if (!block) {
+    return res.status(404).json({ message: 'Bloqueo de agenda no encontrado.' });
+  }
+
+  await block.destroy();
+  return res.status(204).send();
+});
+
 const getAppointment = asyncHandler(async (req, res) => {
   if (!assertUuid(req.params.id, res)) return;
 
@@ -315,6 +522,7 @@ const createAppointment = asyncHandler(async (req, res) => {
 
   const appointment = await sequelize.transaction(async (transaction) => {
     await validateAppointmentUsers({ patientId: resolvedPatientId, physiotherapistId: resolvedPhysioId });
+    await ensureBookableSlot({ startsAt, endsAt, physiotherapistId: resolvedPhysioId, transaction });
     await ensureNoAppointmentOverlap({
       startsAt,
       endsAt,
@@ -389,6 +597,12 @@ const updateAppointment = asyncHandler(async (req, res) => {
     }
 
     if ((payload.startsAt || payload.endsAt || payload.physiotherapistId) && !isClosedAppointmentStatus(payload.status || appointment.status)) {
+      await ensureBookableSlot({
+        startsAt: nextStartsAt,
+        endsAt: nextEndsAt,
+        physiotherapistId: nextPhysioId,
+        transaction
+      });
       await ensureNoAppointmentOverlap({
         startsAt: nextStartsAt,
         endsAt: nextEndsAt,
@@ -699,6 +913,10 @@ const getStats = asyncHandler(async (req, res) => {
 
 module.exports = {
   listAppointments,
+  listAvailability,
+  listScheduleBlocks,
+  createScheduleBlock,
+  deleteScheduleBlock,
   getAppointment,
   createAppointment,
   updateAppointment,

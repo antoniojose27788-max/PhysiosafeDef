@@ -20,32 +20,77 @@
       </nav>
     </header>
 
-    <main class="container auth-shell" id="access">
-      <section class="row align-items-center g-4">
-        <article class="col-12 col-lg-6 hero-copy">
-          <p class="eyebrow">Clinica conectada, datos protegidos</p>
-          <h1>Gestion clinica avanzada para fisioterapia.</h1>
-          <p class="hero-text">
-            Citas, consentimientos, reportes y roles en una base robusta para operar con claridad desde el primer dia.
-          </p>
-          <section class="trust-strip" aria-label="Capacidades principales">
-            <article>
-              <i class="fa-solid fa-user-lock" aria-hidden="true"></i>
-              <span>JWT seguro</span>
+    <main id="access">
+      <section class="auth-hero">
+        <section class="container auth-shell">
+          <section class="row align-items-center g-4">
+            <article class="col-12 col-lg-6 hero-copy">
+              <p class="eyebrow">Clinica conectada, datos protegidos</p>
+              <h1>Fisioterapia segura, cercana y orientada a resultados.</h1>
+              <p class="hero-text">
+                PhysioSafe une una experiencia clinica moderna con una gestion digital clara: citas, consentimientos, reportes y seguimiento del paciente en un entorno protegido.
+              </p>
+              <section class="hero-actions" aria-label="Acciones principales">
+                <a class="btn primary-action" href="#access-card">
+                  <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+                  Acceder al portal
+                </a>
+                <a class="btn secondary-action" href="#services">
+                  <i class="fa-solid fa-stethoscope" aria-hidden="true"></i>
+                  Ver servicios
+                </a>
+              </section>
+              <section class="signal-strip" aria-label="Indicadores de confianza">
+                <article>
+                  <span></span>
+                  <strong>Seguimiento clinico</strong>
+                </article>
+                <article>
+                  <span></span>
+                  <strong>Datos protegidos</strong>
+                </article>
+                <article>
+                  <span></span>
+                  <strong>Atencion coordinada</strong>
+                </article>
+              </section>
+              <section class="trust-strip" aria-label="Capacidades principales">
+                <article>
+                  <i class="fa-solid fa-user-lock" aria-hidden="true"></i>
+                  <span>Acceso por rol</span>
+                </article>
+                <article>
+                  <i class="fa-solid fa-calendar-check" aria-hidden="true"></i>
+                  <span>Agenda sin solapes</span>
+                </article>
+                <article>
+                  <i class="fa-solid fa-file-signature" aria-hidden="true"></i>
+                  <span>Consentimiento informado</span>
+                </article>
+              </section>
             </article>
-            <article>
-              <i class="fa-solid fa-calendar-check" aria-hidden="true"></i>
-              <span>Citas sin solapes</span>
-            </article>
-            <article>
-              <i class="fa-solid fa-file-signature" aria-hidden="true"></i>
-              <span>Consentimientos</span>
-            </article>
-          </section>
-        </article>
 
-        <section class="col-12 col-lg-6">
-          <article class="glass-panel access-card" aria-labelledby="access-title">
+            <section class="col-12 col-lg-6">
+              <article class="hero-media-card">
+                <img src="/images/foto7.jpg" alt="Sesion de fisioterapia con bandas elasticas">
+                <section class="hero-media-overlay" aria-label="Resumen clinico">
+                  <article>
+                    <strong>+360</strong>
+                    <span>sesiones coordinadas</span>
+                  </article>
+                  <article>
+                    <strong>24h</strong>
+                    <span>seguimiento digital</span>
+                  </article>
+                </section>
+              </article>
+            </section>
+          </section>
+        </section>
+      </section>
+
+      <section class="container access-section">
+        <article class="glass-panel access-card" id="access-card" aria-labelledby="access-title">
             <header class="panel-header">
               <p class="eyebrow">Acceso</p>
               <h2 id="access-title">Entrar o crear cuenta de paciente</h2>
@@ -110,12 +155,124 @@
 
             <p class="form-feedback" id="authFeedback" role="status" aria-live="polite"></p>
           </article>
+      </section>
+
+      <section class="container editorial-section" id="services">
+        <header class="section-heading">
+          <p class="eyebrow">Servicios de fisioterapia</p>
+          <h2>Tratamientos para recuperar movilidad, reducir dolor y prevenir recaidas.</h2>
+          <p>
+            Un equipo clinico puede adaptar cada sesion al estado del paciente y registrar la evolucion para que el seguimiento sea consistente.
+          </p>
+        </header>
+        <section class="service-grid" aria-label="Servicios destacados">
+          <article class="service-card">
+            <img src="/images/foto1.jpg" alt="Tratamiento de movilidad de rodilla">
+            <section>
+              <span class="service-icon"><i class="fa-solid fa-person-walking" aria-hidden="true"></i></span>
+              <h3>Rehabilitacion funcional</h3>
+              <p>Recuperacion progresiva tras lesiones, cirugias o periodos de inmovilizacion, con objetivos medibles por fase.</p>
+            </section>
+          </article>
+          <article class="service-card">
+            <img src="/images/foto2.jpg" alt="Terapia manual de espalda">
+            <section>
+              <span class="service-icon"><i class="fa-solid fa-hands-holding" aria-hidden="true"></i></span>
+              <h3>Terapia manual</h3>
+              <p>Abordaje de dolor cervical, dorsal, lumbar y sobrecargas musculares mediante tecnicas manuales y educacion terapeutica.</p>
+            </section>
+          </article>
+          <article class="service-card">
+            <img src="/images/foto4.jpg" alt="Ejercicio terapeutico con pelota">
+            <section>
+              <span class="service-icon"><i class="fa-solid fa-dumbbell" aria-hidden="true"></i></span>
+              <h3>Ejercicio terapeutico</h3>
+              <p>Programas de fuerza, estabilidad y control motor para volver a la actividad diaria o deportiva con confianza.</p>
+            </section>
+          </article>
+          <article class="service-card">
+            <img src="/images/foto5.jpg" alt="Tratamiento con foam roller">
+            <section>
+              <span class="service-icon"><i class="fa-solid fa-wave-square" aria-hidden="true"></i></span>
+              <h3>Readaptacion deportiva</h3>
+              <p>Trabajo progresivo para recuperar gesto, tolerancia a carga y seguridad antes de volver al entrenamiento.</p>
+            </section>
+          </article>
+          <article class="service-card">
+            <img src="/images/foto6.jpg" alt="Valoracion fisioterapeutica">
+            <section>
+              <span class="service-icon"><i class="fa-solid fa-user-doctor" aria-hidden="true"></i></span>
+              <h3>Valoracion y diagnostico</h3>
+              <p>Exploracion funcional, historia clinica y objetivos compartidos para iniciar el tratamiento con criterio.</p>
+            </section>
+          </article>
+          <article class="service-card">
+            <img src="/images/foto7.jpg" alt="Trabajo de fuerza con banda elastica">
+            <section>
+              <span class="service-icon"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i></span>
+              <h3>Prevencion de recaidas</h3>
+              <p>Educacion, ejercicios y pautas de autocuidado para mantener los avances despues de la sesion.</p>
+            </section>
+          </article>
         </section>
+      </section>
+
+      <section class="clinical-band">
+        <section class="container clinical-layout">
+          <article class="clinical-copy">
+            <p class="eyebrow">Metodo PhysioSafe</p>
+            <h2>Una experiencia cuidada antes, durante y despues de cada cita.</h2>
+            <p>
+              El portal facilita la admision, la agenda, los consentimientos y los reportes clinicos para que el paciente perciba orden y el equipo trabaje con informacion fiable.
+            </p>
+            <section class="process-list" aria-label="Proceso clinico">
+              <article>
+                <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+                <span>Valoracion inicial y objetivos claros</span>
+              </article>
+              <article>
+                <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+                <span>Plan de citas y tratamiento personalizado</span>
+              </article>
+              <article>
+                <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
+                <span>Reportes de evolucion y continuidad asistencial</span>
+              </article>
+            </section>
+          </article>
+          <article class="clinical-image">
+            <img src="/images/foto6.jpg" alt="Fisioterapeuta realizando una valoracion en camilla">
+          </article>
+        </section>
+      </section>
+
+      <section class="container precision-section" aria-label="Experiencia digital">
+        <article class="precision-panel">
+          <p class="eyebrow">Experiencia digital</p>
+          <h2>Una clinica que se siente ordenada desde el primer contacto.</h2>
+          <section class="precision-grid">
+            <article>
+              <i class="fa-solid fa-lock" aria-hidden="true"></i>
+              <h3>Portal privado</h3>
+              <p>Cada rol ve sus acciones clave y mantiene la informacion sensible bajo control.</p>
+            </article>
+            <article>
+              <i class="fa-solid fa-robot" aria-hidden="true"></i>
+              <h3>Admision asistida</h3>
+              <p>El asistente ayuda a ordenar preguntas frecuentes, admisiones y contexto previo a la cita.</p>
+            </article>
+            <article>
+              <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+              <h3>Evolucion visible</h3>
+              <p>Reportes y estados facilitan ver el avance clinico sin perder detalle operativo.</p>
+            </article>
+          </section>
+        </article>
       </section>
     </main>
 
     <footer class="container app-footer">
-      <small>PhysioSafe protege el acceso y separa permisos por admin, fisioterapeuta y paciente.</small>
+      <small>PhysioSafe protege el acceso, separa permisos por admin, fisioterapeuta y paciente, y ayuda a documentar cada proceso clinico.</small>
     </footer>
 
     <script src="/app.js"></script>

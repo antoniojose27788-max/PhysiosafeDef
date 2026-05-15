@@ -53,19 +53,6 @@ body::before {
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.72), transparent 78%);
 }
 
-body::after {
-  position: fixed;
-  inset: auto 0 0;
-  z-index: -1;
-  height: 42vh;
-  pointer-events: none;
-  content: "";
-  background:
-    linear-gradient(100deg, transparent 8%, rgba(143, 247, 238, 0.13), transparent 62%),
-    linear-gradient(180deg, transparent, rgba(244, 184, 96, 0.08));
-  clip-path: polygon(0 42%, 100% 9%, 100% 100%, 0 100%);
-}
-
 button,
 input,
 select,
@@ -94,8 +81,6 @@ textarea {
 .auth-surface,
 .dashboard-surface {
   background:
-    radial-gradient(circle at 16% 18%, rgba(143, 247, 238, 0.22), transparent 28%),
-    radial-gradient(circle at 82% 12%, rgba(244, 184, 96, 0.14), transparent 24%),
     linear-gradient(135deg, rgba(12, 143, 136, 0.13) 0%, rgba(255, 255, 255, 0) 42%),
     linear-gradient(160deg, #f5fbf9 0%, #ffffff 44%, #eef5f0 100%);
 }
@@ -167,39 +152,28 @@ textarea {
 
 .auth-hero::before {
   position: absolute;
-  inset: 0;
+  inset: -12%;
   pointer-events: none;
   content: "";
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.2)),
-    url("/images/foto5.jpg") center / cover;
-  opacity: 0.18;
+    radial-gradient(circle, rgba(12, 143, 136, 0.34) 0 1.2px, transparent 1.8px) 0 0 / 92px 92px,
+    radial-gradient(circle, rgba(55, 110, 137, 0.26) 0 1px, transparent 1.7px) 34px 26px / 116px 116px,
+    radial-gradient(circle, rgba(244, 184, 96, 0.24) 0 1.1px, transparent 1.8px) 68px 44px / 148px 148px,
+    linear-gradient(120deg, rgba(255, 255, 255, 0.64), rgba(232, 249, 247, 0.24));
+  opacity: 0.72;
+  animation: particle-drift 26s linear infinite;
 }
 
 .auth-hero::after {
   position: absolute;
-  right: 4%;
-  bottom: 9%;
-  width: min(520px, 42vw);
-  height: 2px;
-  content: "";
-  background: linear-gradient(90deg, transparent, rgba(12, 143, 136, 0.68), transparent);
-  filter: blur(0.2px);
-  animation: scanline 6s ease-in-out infinite;
-}
-
-.auth-hero .container::before {
-  position: absolute;
-  top: 6%;
-  left: -6%;
-  width: 280px;
-  height: 280px;
+  inset: -10%;
   pointer-events: none;
   content: "";
-  border: 1px solid rgba(12, 143, 136, 0.16);
-  border-radius: 999px;
-  box-shadow: inset 0 0 42px rgba(143, 247, 238, 0.18), 0 0 70px rgba(12, 143, 136, 0.12);
-  animation: orbit-glow 12s linear infinite;
+  background:
+    radial-gradient(circle, rgba(12, 143, 136, 0.22) 0 1px, transparent 1.7px) 20px 16px / 130px 130px,
+    radial-gradient(circle, rgba(16, 35, 38, 0.18) 0 0.9px, transparent 1.6px) 72px 58px / 170px 170px;
+  opacity: 0.5;
+  animation: particle-cross 34s linear infinite;
 }
 
 .auth-shell {
@@ -394,23 +368,6 @@ textarea {
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(232, 249, 247, 0.78)),
     var(--paper-strong);
-}
-
-.access-card::after {
-  position: absolute;
-  top: -24%;
-  right: -16%;
-  z-index: 0;
-  width: 340px;
-  height: 340px;
-  content: "";
-  border: 1px solid rgba(12, 143, 136, 0.14);
-  border-radius: 999px;
-  background:
-    linear-gradient(135deg, rgba(143, 247, 238, 0.16), transparent),
-    repeating-conic-gradient(from 90deg, rgba(12, 143, 136, 0.1) 0deg 8deg, transparent 8deg 18deg);
-  filter: blur(0.1px);
-  animation: orbit-glow 16s linear infinite;
 }
 
 .hero-media-card,
@@ -1702,6 +1659,40 @@ textarea.form-control {
   padding: 0;
 }
 
+@keyframes particle-drift {
+  0% {
+    transform: translate3d(-1%, -1%, 0);
+    background-position: 0 0, 34px 26px, 68px 44px, 0 0;
+  }
+
+  50% {
+    transform: translate3d(1.4%, 0.8%, 0);
+    background-position: 46px 38px, 7px 84px, 104px 12px, 0 0;
+  }
+
+  100% {
+    transform: translate3d(-1%, -1%, 0);
+    background-position: 92px 92px, 150px 142px, 216px 192px, 0 0;
+  }
+}
+
+@keyframes particle-cross {
+  0% {
+    transform: translate3d(1%, 0.4%, 0) scale(1);
+    background-position: 20px 16px, 72px 58px;
+  }
+
+  50% {
+    transform: translate3d(-1.2%, -0.8%, 0) scale(1.01);
+    background-position: 86px 54px, 12px 118px;
+  }
+
+  100% {
+    transform: translate3d(1%, 0.4%, 0) scale(1);
+    background-position: 150px 146px, 242px 228px;
+  }
+}
+
 @keyframes shimmer {
   0%,
   48% {
@@ -1780,20 +1771,6 @@ textarea.form-control {
 @keyframes spin {
   to {
     transform: rotate(360deg);
-  }
-}
-
-@keyframes orbit-glow {
-  from {
-    transform: rotate(0deg) scale(1);
-  }
-
-  50% {
-    transform: rotate(180deg) scale(1.06);
-  }
-
-  to {
-    transform: rotate(360deg) scale(1);
   }
 }
 

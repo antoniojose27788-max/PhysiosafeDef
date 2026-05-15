@@ -120,6 +120,14 @@ const parseDateOnly = (value) => {
   return new Date(year, month - 1, day);
 };
 
+const formatDateOnlyLocal = (value) => {
+  const date = value instanceof Date ? value : new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const roleLabel = (role) =>
   ({
     admin: 'Admin',
@@ -354,7 +362,8 @@ const renderScheduleBlocks = () => {
   const target = document.querySelector('#scheduleBlocksList');
   if (!target) return;
 
-  const upcoming = state.scheduleBlocks.filter((block) => new Date(block.date) >= new Date(new Date().toDateString()));
+  const todayKey = formatDateOnlyLocal(new Date());
+  const upcoming = state.scheduleBlocks.filter((block) => block.date >= todayKey);
   if (!upcoming.length) {
     renderEmpty(target, 'Sin dias bloqueados');
     return;
@@ -488,7 +497,7 @@ const renderCalendar = () => {
     date.setDate(monthStart.getDate() + index);
 
     const appointments = state.appointments.filter((appointment) => sameDay(new Date(appointment.startsAt), date));
-    const scheduleBlock = state.scheduleBlocks.find((block) => block.date === date.toISOString().slice(0, 10));
+    const scheduleBlock = state.scheduleBlocks.find((block) => block.date === formatDateOnlyLocal(date));
     const muted = date.getMonth() !== visibleMonth ? 'muted-day' : '';
     const current = sameDay(date, today) ? 'today-day' : '';
     const blocked = scheduleBlock || [0, 6].includes(date.getDay()) ? 'blocked-day' : '';

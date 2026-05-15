@@ -14,11 +14,25 @@ const setFeedback = (message, type = '') => {
 const readForm = (form) => Object.fromEntries(new FormData(form).entries());
 
 const request = async (path, options = {}) => {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options
-  });
-  const data = response.status === 204 ? {} : await response.json();
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        ...(options.headers || {})
+      },
+      ...options
+    });
+  } catch (error) {
+    throw new Error('No se pudo conectar con PhysioSafe. Revisa que el servidor este activo y vuelve a intentarlo.');
+  }
+
+  const text = response.status === 204 || response.status === 304 ? '' : await response.text();
+  const data = text ? JSON.parse(text) : {};
 
   if (!response.ok) {
     throw new Error(data.message || 'No se pudo completar la operacion.');
@@ -157,12 +171,27 @@ const assistantKnowledge = [
   {
     keywords: ['typebot', 'bot', 'asistente', 'admision', 'triaje'],
     answer:
-      'Typebot esta integrado para admisiones. Recoge datos del paciente, motivo, dolor y disponibilidad; despues PhysioSafe puede crear o actualizar la ficha y preparar una cita pendiente.'
+      'Typebot esta integrado para admisiones completas. Recoge identidad, contacto, motivo, zona afectada, dolor, urgencia, alertas clinicas, tratamiento previo y disponibilidad; despues PhysioSafe crea o actualiza la ficha y puede preparar una cita pendiente.'
   },
   {
     keywords: ['dolor', 'primera visita', 'motivo consulta'],
     answer:
-      'El asistente de admision puede recoger motivo de consulta, dolor, zona afectada y disponibilidad para preparar mejor la primera cita.'
+      'El asistente de admision recoge motivo, dolor, evolucion, zona afectada, urgencia y senales de alerta. Asi la clinica llega a la primera visita con una orientacion inicial mas util.'
+  },
+  {
+    keywords: ['urgente', 'urgencia', 'alerta', 'hormigueo', 'traumatismo', 'fiebre'],
+    answer:
+      'Si hay dolor incapacitante, perdida de fuerza, hormigueo progresivo, fiebre, traumatismo importante o perdida de control de esfinteres, el asistente marca revision prioritaria y recomienda contactar con urgencias si la situacion lo requiere.'
+  },
+  {
+    keywords: ['tratamiento', 'rehabilitacion', 'terapia', 'servicios', 'lesion'],
+    answer:
+      'PhysioSafe esta pensado para organizar valoracion inicial, rehabilitacion funcional, terapia manual, ejercicio terapeutico, readaptacion deportiva y seguimiento de la evolucion clinica.'
+  },
+  {
+    keywords: ['clinica', 'empresa', 'physiosafe', 'que es'],
+    answer:
+      'PhysioSafe es un entorno digital para una clinica de fisioterapia: coordina acceso, citas, admision, reportes y consentimientos para que el paciente y el equipo trabajen con informacion clara.'
   }
 ];
 
@@ -183,12 +212,13 @@ const buildAssistant = () => {
         </button>
       </header>
       <section class="assistant-messages" aria-live="polite">
-        <article class="assistant-message bot">Hola. Te ayudo con acceso, registro, roles, citas, consentimientos, reportes y admision antes de entrar al panel.</article>
+        <article class="assistant-message bot">Hola. Soy el asistente de PhysioSafe. Puedo orientarte sobre acceso, citas, admision, tratamientos de fisioterapia, reportes y consentimientos.</article>
       </section>
       <nav class="assistant-suggestions" aria-label="Preguntas sugeridas">
-        <button type="button">Como creo el primer admin?</button>
         <button type="button">Como pide cita un paciente?</button>
-        <button type="button">Para que sirve el asistente?</button>
+        <button type="button">Que es PhysioSafe?</button>
+        <button type="button">Que tratamientos se gestionan?</button>
+        <button type="button">Como funciona la admision?</button>
       </nav>
       <form class="assistant-form">
         <label>
@@ -218,7 +248,10 @@ const buildAssistant = () => {
   const replyTo = (text) => {
     const normalized = text.toLowerCase();
     const match = assistantKnowledge.find((item) => item.keywords.some((keyword) => normalized.includes(keyword)));
-    return match?.answer || 'Puedo ayudarte con registro, login, roles, citas, calendario, consentimientos, reportes y Typebot.';
+    return (
+      match?.answer ||
+      'Puedo ayudarte con informacion sobre PhysioSafe, acceso, citas, admision, tratamientos de fisioterapia, reportes y consentimientos.'
+    );
   };
 
   const addMessage = (text, who) => {

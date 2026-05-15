@@ -1,6 +1,6 @@
 {
   "version": "6",
-  "name": "PhysioSafe - Admision y triaje",
+  "name": "PhysioSafe - Admision completa y triaje",
   "events": [
     {
       "id": "event-start",
@@ -14,8 +14,8 @@
   ],
   "groups": [
     {
-      "id": "group-admision",
-      "title": "Admision del paciente",
+      "id": "group-bienvenida",
+      "title": "Bienvenida y alcance",
       "graphCoordinates": {
         "x": 360,
         "y": 80
@@ -30,14 +30,50 @@
                 "type": "p",
                 "children": [
                   {
-                    "text": "Hola, soy el asistente de PhysioSafe. Voy a recoger tus datos para preparar tu primera cita."
+                    "text": "Hola, soy el asistente de PhysioSafe. Voy a preparar tu admision para que el equipo tenga tus datos, el motivo de consulta y una primera orientacion antes de la cita."
+                  }
+                ]
+              },
+              {
+                "type": "p",
+                "children": [
+                  {
+                    "text": "No sustituyo una valoracion sanitaria. Si tienes dolor incapacitante, fiebre, perdida de fuerza, adormecimiento progresivo o un traumatismo importante, contacta con urgencias."
                   }
                 ]
               }
             ]
           },
-          "outgoingEdgeId": "edge-intro-name"
+          "outgoingEdgeId": "edge-intro-consent"
         },
+        {
+          "id": "block-privacy-consent",
+          "type": "choice input",
+          "items": [
+            {
+              "id": "choice-consent-yes",
+              "content": "Acepto que se usen estos datos para gestionar mi admision"
+            },
+            {
+              "id": "choice-consent-no",
+              "content": "Prefiero que me contacte la clinica"
+            }
+          ],
+          "options": {
+            "variableId": "var-privacy-consent"
+          },
+          "outgoingEdgeId": "edge-consent-name"
+        }
+      ]
+    },
+    {
+      "id": "group-identidad",
+      "title": "Datos del paciente",
+      "graphCoordinates": {
+        "x": 760,
+        "y": 80
+      },
+      "blocks": [
         {
           "id": "block-name",
           "type": "text input",
@@ -72,31 +108,109 @@
             },
             "variableId": "var-email"
           },
-          "outgoingEdgeId": "edge-email-reason"
+          "outgoingEdgeId": "edge-email-contact"
         },
+        {
+          "id": "block-contact-preference",
+          "type": "choice input",
+          "items": [
+            {
+              "id": "choice-contact-phone",
+              "content": "Telefono"
+            },
+            {
+              "id": "choice-contact-email",
+              "content": "Email"
+            },
+            {
+              "id": "choice-contact-whatsapp",
+              "content": "WhatsApp"
+            }
+          ],
+          "options": {
+            "variableId": "var-contact-preference"
+          },
+          "outgoingEdgeId": "edge-contact-first-visit"
+        },
+        {
+          "id": "block-first-visit",
+          "type": "choice input",
+          "items": [
+            {
+              "id": "choice-first-yes",
+              "content": "Es mi primera visita"
+            },
+            {
+              "id": "choice-first-no",
+              "content": "Ya he venido antes"
+            }
+          ],
+          "options": {
+            "variableId": "var-first-visit"
+          },
+          "outgoingEdgeId": "edge-first-reason"
+        }
+      ]
+    },
+    {
+      "id": "group-clinica",
+      "title": "Motivo y triaje",
+      "graphCoordinates": {
+        "x": 1160,
+        "y": 80
+      },
+      "blocks": [
         {
           "id": "block-reason",
           "type": "text input",
           "options": {
             "labels": {
-              "placeholder": "Motivo de consulta",
+              "placeholder": "Motivo principal de consulta",
               "button": "Continuar"
             },
             "isLong": true,
             "variableId": "var-reason"
           },
-          "outgoingEdgeId": "edge-reason-pain"
-        }
-      ]
-    },
-    {
-      "id": "group-triaje",
-      "title": "Triaje inicial",
-      "graphCoordinates": {
-        "x": 840,
-        "y": 80
-      },
-      "blocks": [
+          "outgoingEdgeId": "edge-reason-area"
+        },
+        {
+          "id": "block-area",
+          "type": "text input",
+          "options": {
+            "labels": {
+              "placeholder": "Zona afectada",
+              "button": "Continuar"
+            },
+            "variableId": "var-area"
+          },
+          "outgoingEdgeId": "edge-area-duration"
+        },
+        {
+          "id": "block-symptom-duration",
+          "type": "choice input",
+          "items": [
+            {
+              "id": "choice-duration-recent",
+              "content": "Menos de 72 horas"
+            },
+            {
+              "id": "choice-duration-weeks",
+              "content": "Varios dias o semanas"
+            },
+            {
+              "id": "choice-duration-chronic",
+              "content": "Mas de un mes"
+            },
+            {
+              "id": "choice-duration-relapse",
+              "content": "Es una recaida"
+            }
+          ],
+          "options": {
+            "variableId": "var-symptom-duration"
+          },
+          "outgoingEdgeId": "edge-duration-pain"
+        },
         {
           "id": "block-pain",
           "type": "choice input",
@@ -112,24 +226,117 @@
             {
               "id": "choice-high",
               "content": "Dolor intenso"
+            },
+            {
+              "id": "choice-none",
+              "content": "No tengo dolor, busco prevencion o seguimiento"
             }
           ],
           "options": {
             "variableId": "var-pain"
           },
-          "outgoingEdgeId": "edge-pain-area"
+          "outgoingEdgeId": "edge-pain-urgency"
         },
         {
-          "id": "block-area",
+          "id": "block-urgency",
+          "type": "choice input",
+          "items": [
+            {
+              "id": "choice-urgency-normal",
+              "content": "Puede esperar unos dias"
+            },
+            {
+              "id": "choice-urgency-soon",
+              "content": "Quiero que me valoren pronto"
+            },
+            {
+              "id": "choice-urgency-urgent",
+              "content": "Necesito revision urgente"
+            }
+          ],
+          "options": {
+            "variableId": "var-urgency"
+          },
+          "outgoingEdgeId": "edge-urgency-red-flags"
+        },
+        {
+          "id": "block-red-flags",
+          "type": "choice input",
+          "items": [
+            {
+              "id": "choice-flag-none",
+              "content": "Ninguna de estas"
+            },
+            {
+              "id": "choice-flag-neuro",
+              "content": "Perdida de fuerza, hormigueo o adormecimiento progresivo"
+            },
+            {
+              "id": "choice-flag-trauma",
+              "content": "Traumatismo importante o caida reciente"
+            },
+            {
+              "id": "choice-flag-fever",
+              "content": "Fiebre, mal estado general o dolor nocturno intenso"
+            },
+            {
+              "id": "choice-flag-control",
+              "content": "Perdida de control de esfinteres"
+            }
+          ],
+          "options": {
+            "variableId": "var-red-flags"
+          },
+          "outgoingEdgeId": "edge-red-flags-previous"
+        },
+        {
+          "id": "block-previous-treatment",
           "type": "text input",
           "options": {
             "labels": {
-              "placeholder": "Zona afectada",
+              "placeholder": "Tratamientos, pruebas o diagnosticos previos",
               "button": "Continuar"
             },
-            "variableId": "var-area"
+            "isLong": true,
+            "variableId": "var-previous-treatment"
           },
-          "outgoingEdgeId": "edge-area-availability"
+          "outgoingEdgeId": "edge-previous-insurance"
+        }
+      ]
+    },
+    {
+      "id": "group-agenda",
+      "title": "Disponibilidad y cierre",
+      "graphCoordinates": {
+        "x": 1560,
+        "y": 80
+      },
+      "blocks": [
+        {
+          "id": "block-insurance",
+          "type": "choice input",
+          "items": [
+            {
+              "id": "choice-insurance-private",
+              "content": "Particular"
+            },
+            {
+              "id": "choice-insurance-mutua",
+              "content": "Seguro o mutua"
+            },
+            {
+              "id": "choice-insurance-company",
+              "content": "Derivacion de empresa o club"
+            },
+            {
+              "id": "choice-insurance-unsure",
+              "content": "No lo se todavia"
+            }
+          ],
+          "options": {
+            "variableId": "var-insurance"
+          },
+          "outgoingEdgeId": "edge-insurance-availability"
         },
         {
           "id": "block-availability",
@@ -151,10 +358,34 @@
           "options": {
             "variableId": "var-availability"
           },
-          "outgoingEdgeId": "edge-availability-consent"
+          "outgoingEdgeId": "edge-availability-date"
         },
         {
-          "id": "block-consent-note",
+          "id": "block-preferred-date",
+          "type": "text input",
+          "options": {
+            "labels": {
+              "placeholder": "Fecha preferida, por ejemplo 2026-05-20",
+              "button": "Continuar"
+            },
+            "variableId": "var-preferred-date"
+          },
+          "outgoingEdgeId": "edge-date-time"
+        },
+        {
+          "id": "block-preferred-time",
+          "type": "text input",
+          "options": {
+            "labels": {
+              "placeholder": "Hora preferida, por ejemplo 10:00",
+              "button": "Continuar"
+            },
+            "variableId": "var-preferred-time"
+          },
+          "outgoingEdgeId": "edge-time-summary"
+        },
+        {
+          "id": "block-summary",
           "type": "text",
           "content": {
             "richText": [
@@ -162,13 +393,13 @@
                 "type": "p",
                 "children": [
                   {
-                    "text": "Gracias. El equipo revisara tu solicitud y preparara la cita y los consentimientos necesarios en PhysioSafe."
+                    "text": "Gracias. Enviaremos la admision a PhysioSafe. La ficha del paciente se creara o actualizara, y si hay un hueco real disponible se preparara una cita pendiente para que el equipo la revise."
                   }
                 ]
               }
             ]
           },
-          "outgoingEdgeId": "edge-consent-end"
+          "outgoingEdgeId": "edge-summary-end"
         },
         {
           "id": "block-end",
@@ -179,7 +410,7 @@
                 "type": "p",
                 "children": [
                   {
-                    "text": "Hemos terminado. Si el dolor es incapacitante o hay sintomas neurologicos, contacta con urgencias."
+                    "text": "Proceso completado. Si has indicado alguna senal de alerta o urgencia, no esperes a la confirmacion automatica y contacta con la clinica o con urgencias segun la gravedad."
                   }
                 ]
               }
@@ -196,17 +427,27 @@
         "eventId": "event-start"
       },
       "to": {
-        "groupId": "group-admision",
+        "groupId": "group-bienvenida",
         "blockId": "block-intro"
       }
     },
     {
-      "id": "edge-intro-name",
+      "id": "edge-intro-consent",
       "from": {
         "blockId": "block-intro"
       },
       "to": {
-        "groupId": "group-admision",
+        "groupId": "group-bienvenida",
+        "blockId": "block-privacy-consent"
+      }
+    },
+    {
+      "id": "edge-consent-name",
+      "from": {
+        "blockId": "block-privacy-consent"
+      },
+      "to": {
+        "groupId": "group-identidad",
         "blockId": "block-name"
       }
     },
@@ -216,7 +457,7 @@
         "blockId": "block-name"
       },
       "to": {
-        "groupId": "group-admision",
+        "groupId": "group-identidad",
         "blockId": "block-phone"
       }
     },
@@ -226,72 +467,166 @@
         "blockId": "block-phone"
       },
       "to": {
-        "groupId": "group-admision",
+        "groupId": "group-identidad",
         "blockId": "block-email"
       }
     },
     {
-      "id": "edge-email-reason",
+      "id": "edge-email-contact",
       "from": {
         "blockId": "block-email"
       },
       "to": {
-        "groupId": "group-admision",
+        "groupId": "group-identidad",
+        "blockId": "block-contact-preference"
+      }
+    },
+    {
+      "id": "edge-contact-first-visit",
+      "from": {
+        "blockId": "block-contact-preference"
+      },
+      "to": {
+        "groupId": "group-identidad",
+        "blockId": "block-first-visit"
+      }
+    },
+    {
+      "id": "edge-first-reason",
+      "from": {
+        "blockId": "block-first-visit"
+      },
+      "to": {
+        "groupId": "group-clinica",
         "blockId": "block-reason"
       }
     },
     {
-      "id": "edge-reason-pain",
+      "id": "edge-reason-area",
       "from": {
         "blockId": "block-reason"
       },
       "to": {
-        "groupId": "group-triaje",
-        "blockId": "block-pain"
-      }
-    },
-    {
-      "id": "edge-pain-area",
-      "from": {
-        "blockId": "block-pain"
-      },
-      "to": {
-        "groupId": "group-triaje",
+        "groupId": "group-clinica",
         "blockId": "block-area"
       }
     },
     {
-      "id": "edge-area-availability",
+      "id": "edge-area-duration",
       "from": {
         "blockId": "block-area"
       },
       "to": {
-        "groupId": "group-triaje",
+        "groupId": "group-clinica",
+        "blockId": "block-symptom-duration"
+      }
+    },
+    {
+      "id": "edge-duration-pain",
+      "from": {
+        "blockId": "block-symptom-duration"
+      },
+      "to": {
+        "groupId": "group-clinica",
+        "blockId": "block-pain"
+      }
+    },
+    {
+      "id": "edge-pain-urgency",
+      "from": {
+        "blockId": "block-pain"
+      },
+      "to": {
+        "groupId": "group-clinica",
+        "blockId": "block-urgency"
+      }
+    },
+    {
+      "id": "edge-urgency-red-flags",
+      "from": {
+        "blockId": "block-urgency"
+      },
+      "to": {
+        "groupId": "group-clinica",
+        "blockId": "block-red-flags"
+      }
+    },
+    {
+      "id": "edge-red-flags-previous",
+      "from": {
+        "blockId": "block-red-flags"
+      },
+      "to": {
+        "groupId": "group-clinica",
+        "blockId": "block-previous-treatment"
+      }
+    },
+    {
+      "id": "edge-previous-insurance",
+      "from": {
+        "blockId": "block-previous-treatment"
+      },
+      "to": {
+        "groupId": "group-agenda",
+        "blockId": "block-insurance"
+      }
+    },
+    {
+      "id": "edge-insurance-availability",
+      "from": {
+        "blockId": "block-insurance"
+      },
+      "to": {
+        "groupId": "group-agenda",
         "blockId": "block-availability"
       }
     },
     {
-      "id": "edge-availability-consent",
+      "id": "edge-availability-date",
       "from": {
         "blockId": "block-availability"
       },
       "to": {
-        "groupId": "group-triaje",
-        "blockId": "block-consent-note"
+        "groupId": "group-agenda",
+        "blockId": "block-preferred-date"
       }
     },
     {
-      "id": "edge-consent-end",
+      "id": "edge-date-time",
       "from": {
-        "blockId": "block-consent-note"
+        "blockId": "block-preferred-date"
       },
       "to": {
-        "groupId": "group-triaje",
+        "groupId": "group-agenda",
+        "blockId": "block-preferred-time"
+      }
+    },
+    {
+      "id": "edge-time-summary",
+      "from": {
+        "blockId": "block-preferred-time"
+      },
+      "to": {
+        "groupId": "group-agenda",
+        "blockId": "block-summary"
+      }
+    },
+    {
+      "id": "edge-summary-end",
+      "from": {
+        "blockId": "block-summary"
+      },
+      "to": {
+        "groupId": "group-agenda",
         "blockId": "block-end"
       }
     }
   ],
   "variables": [
+    {
+      "id": "var-privacy-consent",
+      "name": "privacyConsent"
+    },
     {
       "id": "var-name",
       "name": "name"
@@ -305,20 +640,56 @@
       "name": "email"
     },
     {
-      "id": "var-reason",
-      "name": "reason"
+      "id": "var-contact-preference",
+      "name": "contactPreference"
     },
     {
-      "id": "var-pain",
-      "name": "pain"
+      "id": "var-first-visit",
+      "name": "firstVisit"
+    },
+    {
+      "id": "var-reason",
+      "name": "reason"
     },
     {
       "id": "var-area",
       "name": "area"
     },
     {
+      "id": "var-symptom-duration",
+      "name": "symptomDuration"
+    },
+    {
+      "id": "var-pain",
+      "name": "pain"
+    },
+    {
+      "id": "var-urgency",
+      "name": "urgency"
+    },
+    {
+      "id": "var-red-flags",
+      "name": "redFlags"
+    },
+    {
+      "id": "var-previous-treatment",
+      "name": "previousTreatment"
+    },
+    {
+      "id": "var-insurance",
+      "name": "insurance"
+    },
+    {
       "id": "var-availability",
       "name": "availability"
+    },
+    {
+      "id": "var-preferred-date",
+      "name": "preferredDate"
+    },
+    {
+      "id": "var-preferred-time",
+      "name": "preferredTime"
     }
   ],
   "physiosafeWebhook": {
@@ -329,14 +700,37 @@
       "name": "{{name}}",
       "email": "{{email}}",
       "phone": "{{phone}}",
+      "contactPreference": "{{contactPreference}}",
+      "privacyConsent": "{{privacyConsent}}",
+      "firstVisit": "{{firstVisit}}",
       "reason": "{{reason}}",
-      "pain": "{{pain}}",
       "area": "{{area}}",
+      "symptomDuration": "{{symptomDuration}}",
+      "pain": "{{pain}}",
+      "urgency": "{{urgency}}",
+      "redFlags": "{{redFlags}}",
+      "previousTreatment": "{{previousTreatment}}",
+      "insurance": "{{insurance}}",
       "availability": "{{availability}}",
+      "preferredDate": "{{preferredDate}}",
+      "preferredTime": "{{preferredTime}}",
       "source": "typebot"
     },
-    "optionalFields": ["preferredDate", "preferredTime", "startsAt", "endsAt", "physiotherapistEmail"]
+    "optionalFields": [
+      "startsAt",
+      "endsAt",
+      "physiotherapistId",
+      "physiotherapistEmail"
+    ],
+    "result": "Crea o actualiza paciente, guarda notas completas de admision y prepara una cita pendiente cuando encuentra hueco real."
   },
+  "recommendedNextFeatures": [
+    "Crear consentimiento inicial automaticamente cuando privacyConsent sea aceptado.",
+    "Mostrar una bandeja de admisiones pendientes dentro del dashboard.",
+    "Permitir que el equipo convierta una admision en cita programada con un clic.",
+    "Enviar email o WhatsApp de confirmacion al paciente tras el webhook.",
+    "Asignar fisioterapeuta por especialidad, zona afectada o carga de agenda."
+  ],
   "theme": {},
   "settings": {
     "general": {

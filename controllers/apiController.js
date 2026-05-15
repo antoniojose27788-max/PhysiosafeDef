@@ -41,17 +41,59 @@ const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
 
 const normalizePreference = (value) => {
   const text = String(value || '').toLowerCase();
-  if (['manana', 'mañana', 'morning', 'primera hora'].some((keyword) => text.includes(keyword))) return 'morning';
+  if (['manana', 'mañana', 'morning', 'primera hora', 'matinal'].some((keyword) => text.includes(keyword))) return 'morning';
   if (['tarde', 'afternoon', 'ultima hora', 'última hora'].some((keyword) => text.includes(keyword))) return 'afternoon';
   return 'any';
 };
 
-const buildIntakeNotes = ({ source, reason, pain, area, availability, preferredDate, preferredTime }) =>
+const normalizeListText = (value) => {
+  if (Array.isArray(value)) return value.filter(Boolean).join(', ');
+  return cleanOptionalText(value);
+};
+
+const determineIntakePriority = ({ urgency, pain, redFlags }) => {
+  const combined = `${urgency || ''} ${pain || ''} ${normalizeListText(redFlags) || ''}`.toLowerCase();
+  if (['urgente', 'intenso', 'neurologico', 'fiebre', 'traumatismo', 'perdida', 'incontinencia'].some((keyword) => combined.includes(keyword))) {
+    return 'revision_prioritaria';
+  }
+  if (['moderado', 'reciente', 'empeora'].some((keyword) => combined.includes(keyword))) {
+    return 'preferente';
+  }
+  return 'normal';
+};
+
+const buildIntakeNotes = ({
+  source,
+  reason,
+  pain,
+  area,
+  urgency,
+  symptomDuration,
+  redFlags,
+  firstVisit,
+  previousTreatment,
+  insurance,
+  contactPreference,
+  privacyConsent,
+  availability,
+  preferredDate,
+  preferredTime,
+  intakePriority
+}) =>
   [
     `Origen: ${source}`,
+    `Prioridad inicial: ${intakePriority}`,
     reason ? `Motivo: ${reason}` : null,
     pain ? `Dolor: ${pain}` : null,
     area ? `Zona afectada: ${area}` : null,
+    urgency ? `Urgencia percibida: ${urgency}` : null,
+    symptomDuration ? `Evolucion: ${symptomDuration}` : null,
+    redFlags ? `Alertas declaradas: ${normalizeListText(redFlags)}` : null,
+    firstVisit ? `Primera visita: ${firstVisit}` : null,
+    previousTreatment ? `Tratamiento previo: ${previousTreatment}` : null,
+    insurance ? `Seguro/financiacion: ${insurance}` : null,
+    contactPreference ? `Preferencia de contacto: ${contactPreference}` : null,
+    privacyConsent ? `Consentimiento informativo inicial: ${privacyConsent}` : null,
     availability ? `Disponibilidad: ${availability}` : null,
     preferredDate ? `Fecha preferida: ${preferredDate}` : null,
     preferredTime ? `Hora preferida: ${preferredTime}` : null
@@ -263,6 +305,14 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
     reason,
     pain,
     area,
+    urgency,
+    symptomDuration,
+    redFlags,
+    firstVisit,
+    previousTreatment,
+    insurance,
+    contactPreference,
+    privacyConsent,
     availability,
     physiotherapistId,
     physiotherapistEmail,
@@ -277,14 +327,24 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Nombre y email son obligatorios para la admision.' });
   }
 
+  const intakePriority = determineIntakePriority({ urgency, pain, redFlags });
   const medicalNotes = buildIntakeNotes({
     source,
     reason,
     pain,
     area,
+    urgency,
+    symptomDuration,
+    redFlags,
+    firstVisit,
+    previousTreatment,
+    insurance,
+    contactPreference,
+    privacyConsent,
     availability,
     preferredDate,
-    preferredTime
+    preferredTime,
+    intakePriority
   });
 
   const [patient, created] = await User.findOrCreate({
@@ -357,7 +417,10 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
               {
                 patientId: patient.id,
                 physiotherapistId: physiotherapist.id,
-                title: 'Solicitud Typebot - Valoracion inicial',
+                title:
+                  intakePriority === 'revision_prioritaria'
+                    ? 'Solicitud Typebot - Revision prioritaria'
+                    : 'Solicitud Typebot - Valoracion inicial',
                 treatmentType: 'Valoracion inicial',
                 startsAt: slot.startsAt,
                 endsAt: slot.endsAt,

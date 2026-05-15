@@ -28,14 +28,23 @@ const setFeedback = (message, type = '') => {
 };
 
 const request = async (path, options = {}) => {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(options.headers || {})
-    },
-    ...options
-  });
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        Authorization: `Bearer ${token}`,
+        ...(options.headers || {})
+      },
+      ...options
+    });
+  } catch (error) {
+    throw new Error('No se pudo conectar con PhysioSafe. Revisa que el servidor este activo y vuelve a intentarlo.');
+  }
 
   if (response.status === 401) {
     localStorage.removeItem('physiosafe_token');
@@ -44,7 +53,9 @@ const request = async (path, options = {}) => {
     return {};
   }
 
-  const data = response.status === 204 ? {} : await response.json();
+  const text = response.status === 204 || response.status === 304 ? '' : await response.text();
+  const data = text ? JSON.parse(text) : {};
+
   if (!response.ok) {
     throw new Error(data.message || 'No se pudo completar la operacion.');
   }
@@ -83,8 +94,12 @@ const submitResourceForm = async ({ form, path, payload, successMessage }) => {
       body: JSON.stringify(payload || readForm(form))
     });
     form.reset();
-    await refreshAll();
-    setFeedback(successMessage, 'success');
+    try {
+      await refreshAll();
+      setFeedback(successMessage, 'success');
+    } catch (refreshError) {
+      setFeedback(`${successMessage} Recarga los datos con Actualizar si no lo ves al momento.`, 'success');
+    }
   } catch (error) {
     setFeedback(error.message, 'error');
   } finally {
@@ -597,9 +612,13 @@ const refreshAll = async () => {
   setFeedback('Actualizando datos...');
   await loadMe();
   await loadUsers();
-  await Promise.all([loadStats(), loadAppointments(), loadReports(), loadConsents(), loadScheduleBlocks()]);
+  const tasks = await Promise.allSettled([loadStats(), loadAppointments(), loadReports(), loadConsents(), loadScheduleBlocks()]);
+  const failedTask = tasks.find((task) => task.status === 'rejected');
   renderCalendar();
   await loadAvailability();
+  if (failedTask) {
+    throw failedTask.reason;
+  }
   setFeedback('Datos sincronizados.', 'success');
 };
 
@@ -658,8 +677,12 @@ document.querySelector('#appointmentForm').addEventListener('submit', async (eve
 
 document.querySelector('#scheduleBlockForm').addEventListener('submit', async (event) => {
   event.preventDefault();
+  const form = event.currentTarget;
+  setSubmitState(form, true);
+  setFeedback('Guardando bloqueo...');
+
   try {
-    const payload = readForm(event.currentTarget);
+    const payload = readForm(form);
     if (state.user?.role === 'fisioterapeuta') {
       payload.physiotherapistId = state.user.id;
     }
@@ -668,10 +691,17 @@ document.querySelector('#scheduleBlockForm').addEventListener('submit', async (e
       method: 'POST',
       body: JSON.stringify(payload)
     });
-    event.currentTarget.reset();
-    await refreshAll();
+    form.reset();
+    try {
+      await refreshAll();
+      setFeedback('Dia no laborable bloqueado correctamente.', 'success');
+    } catch (refreshError) {
+      setFeedback('Dia no laborable bloqueado correctamente. Pulsa Actualizar si no aparece al momento.', 'success');
+    }
   } catch (error) {
     setFeedback(error.message, 'error');
+  } finally {
+    setSubmitState(form, false);
   }
 });
 
@@ -709,6 +739,7 @@ document.addEventListener('click', async (event) => {
   const disableAction = event.target.closest('[data-user-disable]');
   const slotAction = event.target.closest('[data-slot-start]');
   const scheduleBlockDeleteAction = event.target.closest('[data-schedule-block-delete]');
+  const remoteAction = appointmentAction || signAction || revokeAction || disableAction || scheduleBlockDeleteAction;
 
   try {
     if (slotAction) {
@@ -716,12 +747,21 @@ document.addEventListener('click', async (event) => {
       form.elements.startsAt.value = slotAction.dataset.slotStart.slice(0, 16);
       form.elements.endsAt.value = slotAction.dataset.slotEnd.slice(0, 16);
       setFeedback('Hueco seleccionado. Revisa los datos y confirma la cita.', 'success');
+      return;
     }
+
+    if (!remoteAction) {
+      return;
+    }
+
+    remoteAction.disabled = true;
+    setFeedback('Aplicando cambio...');
 
     if (appointmentAction) {
       const [id, status] = appointmentAction.dataset.appointmentStatus.split(':');
       await request(`/appointments/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
       await refreshAll();
+      setFeedback('Estado de cita actualizado.', 'success');
     }
 
     if (signAction) {
@@ -730,6 +770,7 @@ document.addEventListener('click', async (event) => {
         body: JSON.stringify({ status: 'signed' })
       });
       await refreshAll();
+      setFeedback('Consentimiento firmado correctamente.', 'success');
     }
 
     if (revokeAction) {
@@ -738,19 +779,26 @@ document.addEventListener('click', async (event) => {
         body: JSON.stringify({ status: 'revoked' })
       });
       await refreshAll();
+      setFeedback('Consentimiento revocado correctamente.', 'success');
     }
 
     if (disableAction) {
       await request(`/users/${disableAction.dataset.userDisable}`, { method: 'DELETE' });
       await refreshAll();
+      setFeedback('Usuario desactivado correctamente.', 'success');
     }
 
     if (scheduleBlockDeleteAction) {
       await request(`/schedule-blocks/${scheduleBlockDeleteAction.dataset.scheduleBlockDelete}`, { method: 'DELETE' });
       await refreshAll();
+      setFeedback('Dia no laborable desbloqueado correctamente.', 'success');
     }
   } catch (error) {
     setFeedback(error.message, 'error');
+  } finally {
+    if (remoteAction?.isConnected) {
+      remoteAction.disabled = false;
+    }
   }
 });
 
@@ -867,25 +915,31 @@ const assistantKnowledge = [
     keywords: ['typebot', 'bot', 'asistente', 'webhook', 'admision', 'plantilla', 'triaje'],
     section: 'assistant',
     answer:
-      'En Asistente tienes el circuito de admision. El Typebot publicado recoge datos, envia el webhook protegido y PhysioSafe crea o actualiza el paciente; si encuentra hueco real, deja una cita pendiente.'
-  },
-  {
-    keywords: ['conectar typebot', 'configurar typebot', 'payload typebot', 'variables typebot'],
-    section: 'assistant',
-    answer:
-      'Configura Typebot con una peticion POST a /api/typebot/intake, header X-PhysioSafe-Typebot-Secret y variables name, email, phone, reason, pain, area y availability. Si anades preferredDate/preferredTime o startsAt/endsAt, intentara reservar ese hueco.'
+      'En Asistente tienes el circuito de admision completo. El Typebot recoge identidad, contacto, motivo, zona, evolucion, dolor, urgencia, alertas clinicas, tratamiento previo y disponibilidad; envia el webhook protegido y PhysioSafe crea o actualiza el paciente. Si encuentra hueco real, deja una cita pendiente.'
   },
   {
     keywords: ['probar asistente', 'editar flujo', 'builder', 'viewer'],
     section: 'assistant',
     answer:
-      'Usa Probar asistente para abrir el flujo publicado. El panel Asistente tambien lo muestra embebido para que el paciente lo pueda completar desde PhysioSafe.'
+      'Usa el panel Asistente para completar la admision digital del paciente: recoge motivo de consulta, disponibilidad y datos utiles antes de la primera cita.'
   },
   {
     keywords: ['admisiones', 'primera visita', 'motivo consulta', 'dolor'],
     section: 'assistant',
     answer:
-      'El flujo de admision debe recoger identidad, motivo, dolor, zona afectada, urgencia y disponibilidad. Con esos datos el sistema prepara la ficha y puede crear una cita pendiente para que el equipo la valide.'
+      'El flujo de admision recoge identidad, motivo, dolor, zona afectada, evolucion, urgencia, alertas, tratamiento previo y disponibilidad. Con esos datos el sistema prepara la ficha, calcula prioridad inicial y puede crear una cita pendiente para que el equipo la valide.'
+  },
+  {
+    keywords: ['urgente', 'urgencia', 'alerta', 'bandera roja', 'hormigueo', 'traumatismo', 'fiebre', 'incontinencia'],
+    section: 'assistant',
+    answer:
+      'Si la admision incluye dolor intenso, traumatismo, fiebre, perdida de fuerza, hormigueo progresivo o perdida de control de esfinteres, PhysioSafe la marca como revision prioritaria en las notas y en el titulo de la cita. El asistente tambien debe recomendar contacto sanitario urgente cuando la gravedad lo justifique.'
+  },
+  {
+    keywords: ['whatsapp', 'email', 'recordatorio', 'confirmacion'],
+    section: 'appointments',
+    answer:
+      'Las confirmaciones ayudan al paciente a recordar su cita y a tener claro el dia, la hora y el fisioterapeuta asignado.'
   },
   {
     keywords: ['resumen', 'estadisticas', 'stats', 'dashboard', 'indicadores'],
@@ -924,7 +978,7 @@ const buildAssistant = () => {
         </button>
       </header>
       <section class="assistant-messages" aria-live="polite">
-        <article class="assistant-message bot">Estoy conectado al panel. Puedo orientarte por seccion, resumir lo que ves y explicar como usar citas, calendario, usuarios, reportes, consentimientos y admision.</article>
+        <article class="assistant-message bot">Estoy conectado al panel. Puedo orientarte sobre citas, calendario, pacientes, reportes, consentimientos y admision clinica.</article>
       </section>
       <nav class="assistant-suggestions" aria-label="Preguntas sugeridas">
         <button type="button">Como pide cita un paciente?</button>
@@ -985,7 +1039,10 @@ const buildAssistant = () => {
       : '';
 
     return {
-      answer: `${match?.answer || 'Puedo ayudarte con citas, usuarios, reportes, consentimientos, calendario y Typebot.'}${roleHint}${summaryHint}`,
+      answer: `${
+        match?.answer ||
+        'Puedo ayudarte con citas, usuarios, reportes, consentimientos, calendario y admision clinica dentro de PhysioSafe.'
+      }${roleHint}${summaryHint}`,
       section: match?.section
     };
   };

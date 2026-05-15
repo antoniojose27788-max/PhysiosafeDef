@@ -7,7 +7,7 @@
     <title>PhysioSafe | Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-    <link href="/style.css" rel="stylesheet">
+    <link href="/style.css?v=20260515-ui2" rel="stylesheet">
   </head>
   <body class="dashboard-surface">
     <header class="dashboard-topbar">
@@ -72,6 +72,29 @@
         </header>
 
         <p class="form-feedback" id="dashboardFeedback" role="status" aria-live="polite"></p>
+
+        <section class="ops-ribbon" aria-label="Estado operativo PhysioSafe">
+          <article>
+            <i class="fa-solid fa-wave-pulse" aria-hidden="true"></i>
+            <span>Modo clinica</span>
+            <strong>Control total</strong>
+          </article>
+          <article>
+            <i class="fa-solid fa-robot" aria-hidden="true"></i>
+            <span>Admision Typebot</span>
+            <strong>Triaje conectado</strong>
+          </article>
+          <article>
+            <i class="fa-solid fa-calendar-shield" aria-hidden="true"></i>
+            <span>Agenda</span>
+            <strong>Sin solapes</strong>
+          </article>
+          <article>
+            <i class="fa-solid fa-file-signature" aria-hidden="true"></i>
+            <span>Documentos</span>
+            <strong>Firma y control</strong>
+          </article>
+        </section>
 
         <section class="dashboard-section active" id="overviewSection" aria-labelledby="workspaceTitle">
           <section class="overview-hero" aria-label="Resumen operativo">
@@ -367,33 +390,33 @@
             <header class="panel-header">
               <p class="eyebrow">Asistente inteligente</p>
               <h2>Centro de admision y ayuda clinica</h2>
-              <p>Esta seccion sirve para preparar el circuito del paciente antes de llegar a consulta: admision, triaje, disponibilidad y envio al equipo.</p>
+            <p>Esta seccion prepara el circuito del paciente antes de llegar a consulta: admision, triaje, prioridad inicial, disponibilidad y envio al equipo.</p>
             </header>
 
             <section class="assistant-dashboard-grid" aria-label="Objetivos del asistente">
               <article class="assistant-metric-card">
                 <i class="fa-solid fa-clipboard-question" aria-hidden="true"></i>
                 <h3>Admision</h3>
-                <p>Recoge datos basicos, motivo de consulta, zona afectada y disponibilidad.</p>
+                <p>Recoge identidad, contacto, motivo de consulta, zona afectada, seguro y disponibilidad.</p>
               </article>
               <article class="assistant-metric-card">
                 <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
                 <h3>Triaje</h3>
-                <p>Ordena dolor, urgencia, evolucion del problema y posibles banderas rojas.</p>
+                <p>Ordena dolor, urgencia, evolucion, tratamiento previo y posibles senales de alerta.</p>
               </article>
               <article class="assistant-metric-card">
                 <i class="fa-solid fa-route" aria-hidden="true"></i>
                 <h3>Siguiente paso</h3>
-                <p>Guia al paciente hacia solicitud de cita, firma de documentos o contacto clinico.</p>
+                <p>Guia al paciente hacia cita pendiente, revision prioritaria, documentos o contacto clinico.</p>
               </article>
             </section>
 
             <section class="assistant-actions" aria-label="Acciones Typebot">
-              <a class="btn primary-action" href="https://typebot.co/physio-safe-admision-y-triaje-tnmszul" target="_blank" rel="noopener">
+              <a class="btn primary-action" href="https://typebot.co/physio-safe-admision-completa-y-triaje-g7122f4" target="_blank" rel="noopener">
                 <i class="fa-solid fa-message" aria-hidden="true"></i>
                 Probar asistente
               </a>
-              <a class="btn secondary-action" href="https://typebot.co/physio-safe-admision-y-triaje-tnmszul" target="_blank" rel="noopener">
+              <a class="btn secondary-action" href="https://typebot.co/physio-safe-admision-completa-y-triaje-g7122f4" target="_blank" rel="noopener">
                 <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
                 Abrir Typebot
               </a>
@@ -415,6 +438,24 @@
             </section>
           </article>
 
+          <section class="assistant-upgrade-strip" aria-label="Mejoras recomendadas del asistente">
+            <article>
+              <i class="fa-solid fa-inbox" aria-hidden="true"></i>
+              <h3>Bandeja de admisiones</h3>
+              <p>Revisar solicitudes Typebot antes de convertirlas en citas programadas.</p>
+            </article>
+            <article>
+              <i class="fa-solid fa-bell" aria-hidden="true"></i>
+              <h3>Recordatorios</h3>
+              <p>Confirmaciones y avisos por email o WhatsApp para reducir ausencias.</p>
+            </article>
+            <article>
+              <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+              <h3>Asignacion inteligente</h3>
+              <p>Elegir fisio por disponibilidad, especialidad, prioridad y carga de agenda.</p>
+            </article>
+          </section>
+
           <article class="glass-panel data-panel">
             <header class="panel-header">
               <p class="eyebrow">Configuracion</p>
@@ -428,11 +469,11 @@
               </article>
               <article class="record-card">
                 <h3>Datos minimos</h3>
-                <small>name, email, phone, reason, pain, area, availability. Opcional: preferredDate, preferredTime, startsAt, endsAt o physiotherapistEmail.</small>
+                <small>name, email, phone, contactPreference, privacyConsent, reason, area, symptomDuration, pain, urgency, redFlags, previousTreatment, insurance, availability, preferredDate y preferredTime.</small>
               </article>
               <article class="record-card">
                 <h3>Resultado esperado</h3>
-                <small>Crea o actualiza al paciente, guarda notas clinicas y, si hay hueco real, genera una cita pendiente sin solapes.</small>
+                <small>Crea o actualiza al paciente, guarda notas clinicas completas, calcula prioridad inicial y, si hay hueco real, genera una cita pendiente sin solapes.</small>
               </article>
             </section>
           </article>
@@ -440,11 +481,17 @@
       </section>
     </main>
 
-    <script src="/dashboard.js"></script>
-    <script type="module">
-      import Typebot from 'https://cdn.jsdelivr.net/npm/@typebot.io/js@0/dist/web.js';
+    <script src="/dashboard.js?v=20260515-ui2"></script>
+    <script>
+      const typebotInitScript = document.createElement("script");
+      typebotInitScript.type = "module";
+      typebotInitScript.innerHTML = `import Typebot from 'https://cdn.jsdelivr.net/npm/@typebot.io/js@0/dist/web.js'
 
-      Typebot.initStandard({ typebot: 'physio-safe-admision-y-triaje-tnmszul' });
+Typebot.initStandard({
+  typebot: "physio-safe-admision-completa-y-triaje-g7122f4",
+});
+`;
+      document.body.append(typebotInitScript);
     </script>
   </body>
 </html>

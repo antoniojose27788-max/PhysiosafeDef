@@ -64,9 +64,12 @@ app.use('/api/*', (req, res) => {
 });
 
 app.use((error, req, res, next) => {
-  const status = error.status || 500;
+  const isSequelizeValidation = ['SequelizeValidationError', 'SequelizeUniqueConstraintError'].includes(error.name);
+  const isSequelizeForeignKey = error.name === 'SequelizeForeignKeyConstraintError';
+  const status = error.status || (isSequelizeValidation || isSequelizeForeignKey ? 400 : 500);
+  const validationMessage = error.errors?.map((item) => item.message).join(' ') || error.message;
   const payload = {
-    message: status === 500 ? 'Error interno del servidor.' : error.message
+    message: status === 500 ? 'Error interno del servidor.' : validationMessage
   };
 
   if (!isProduction) {

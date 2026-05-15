@@ -137,7 +137,7 @@ const assistantKnowledge = [
   {
     keywords: ['cita', 'citas', 'agenda', 'solicitar cita', 'pedir cita'],
     answer:
-      'Las citas se gestionan dentro del dashboard. Admin y fisios pueden crearlas, y los pacientes pueden solicitar una cita pendiente con un fisioterapeuta.'
+      'Las citas se gestionan dentro del dashboard. Admin y fisios pueden crearlas, y los pacientes pueden solicitar una cita pendiente con fisioterapeuta y hueco disponible.'
   },
   {
     keywords: ['disponibilidad', 'dias disponibles', 'huecos', 'horario'],
@@ -157,7 +157,7 @@ const assistantKnowledge = [
   {
     keywords: ['typebot', 'bot', 'asistente', 'admision', 'triaje'],
     answer:
-      'Typebot esta integrado para admisiones. En el dashboard, la seccion Asistente explica el flujo, permite probarlo, editarlo y descargar la plantilla.'
+      'Typebot esta integrado para admisiones. Recoge datos del paciente, motivo, dolor y disponibilidad; despues PhysioSafe puede crear o actualizar la ficha y preparar una cita pendiente.'
   },
   {
     keywords: ['dolor', 'primera visita', 'motivo consulta'],
@@ -183,7 +183,7 @@ const buildAssistant = () => {
         </button>
       </header>
       <section class="assistant-messages" aria-live="polite">
-        <article class="assistant-message bot">Hola. Te ayudo con acceso, registro, roles, citas, consentimientos, reportes y admision.</article>
+        <article class="assistant-message bot">Hola. Te ayudo con acceso, registro, roles, citas, consentimientos, reportes y admision antes de entrar al panel.</article>
       </section>
       <nav class="assistant-suggestions" aria-label="Preguntas sugeridas">
         <button type="button">Como creo el primer admin?</button>

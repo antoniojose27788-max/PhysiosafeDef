@@ -31,6 +31,112 @@ const isWeekend = (date) => [0, 6].includes(date.getDay());
 
 const overlaps = (leftStart, leftEnd, rightStart, rightEnd) => leftStart < rightEnd && leftEnd > rightStart;
 
+const cleanOptionalText = (value) => {
+  if (value === undefined || value === null) return undefined;
+  const text = String(value).trim();
+  return text || undefined;
+};
+
+const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+
+const normalizePreference = (value) => {
+  const text = String(value || '').toLowerCase();
+  if (['manana', 'mañana', 'morning', 'primera hora'].some((keyword) => text.includes(keyword))) return 'morning';
+  if (['tarde', 'afternoon', 'ultima hora', 'última hora'].some((keyword) => text.includes(keyword))) return 'afternoon';
+  return 'any';
+};
+
+const buildIntakeNotes = ({ source, reason, pain, area, availability, preferredDate, preferredTime }) =>
+  [
+    `Origen: ${source}`,
+    reason ? `Motivo: ${reason}` : null,
+    pain ? `Dolor: ${pain}` : null,
+    area ? `Zona afectada: ${area}` : null,
+    availability ? `Disponibilidad: ${availability}` : null,
+    preferredDate ? `Fecha preferida: ${preferredDate}` : null,
+    preferredTime ? `Hora preferida: ${preferredTime}` : null
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+const resolveIntakeSlot = ({ startsAt, endsAt, preferredDate, preferredTime }) => {
+  if (startsAt) {
+    const start = new Date(startsAt);
+    const end = endsAt ? new Date(endsAt) : new Date(start);
+    if (!endsAt) end.setMinutes(end.getMinutes() + SLOT_MINUTES);
+    return { startsAt: start, endsAt: end };
+  }
+
+  if (preferredDate && preferredTime) {
+    const start = new Date(`${preferredDate}T${preferredTime}`);
+    const end = new Date(start);
+    end.setMinutes(end.getMinutes() + SLOT_MINUTES);
+    return { startsAt: start, endsAt: end };
+  }
+
+  return null;
+};
+
+const findIntakePhysiotherapist = async ({ physiotherapistId, physiotherapistEmail }) => {
+  if (physiotherapistId) {
+    const physiotherapist = await User.findOne({
+      where: { id: physiotherapistId, role: 'fisioterapeuta', isActive: true }
+    });
+    if (physiotherapist) return physiotherapist;
+  }
+
+  if (physiotherapistEmail) {
+    const physiotherapist = await User.findOne({
+      where: { email: normalizeEmail(physiotherapistEmail), role: 'fisioterapeuta', isActive: true }
+    });
+    if (physiotherapist) return physiotherapist;
+  }
+
+  return User.findOne({
+    where: { role: 'fisioterapeuta', isActive: true },
+    order: [['name', 'ASC']]
+  });
+};
+
+const isSlotFreeForIntake = async ({ startsAt, endsAt, physiotherapistId }) => {
+  try {
+    await ensureBookableSlot({ startsAt, endsAt, physiotherapistId });
+    const overlappingAppointment = await Appointment.findOne({
+      where: Appointment.overlapWhere({ startsAt, endsAt, physiotherapistId })
+    });
+    return !overlappingAppointment;
+  } catch (error) {
+    return false;
+  }
+};
+
+const findFirstAvailableSlot = async ({ physiotherapistId, preference }) => {
+  const startHour = preference === 'afternoon' ? 15 : WORK_START_HOUR;
+  const endHour = preference === 'morning' ? 14 : WORK_END_HOUR;
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+
+  for (let dayOffset = 0; dayOffset < 21; dayOffset += 1) {
+    const day = new Date(cursor);
+    day.setDate(cursor.getDate() + dayOffset);
+
+    for (let hour = startHour; hour < endHour; hour += 1) {
+      const startsAt = new Date(day);
+      startsAt.setHours(hour, 0, 0, 0);
+      const endsAt = new Date(startsAt);
+      endsAt.setMinutes(endsAt.getMinutes() + SLOT_MINUTES);
+
+      if (startsAt <= new Date()) continue;
+
+      if (await isSlotFreeForIntake({ startsAt, endsAt, physiotherapistId })) {
+        return { startsAt, endsAt };
+      }
+    }
+  }
+
+  return null;
+};
+
 const getAppointmentWhereForUser = (user) => {
   if (isAdmin(user)) {
     return {};
@@ -158,6 +264,12 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
     pain,
     area,
     availability,
+    physiotherapistId,
+    physiotherapistEmail,
+    startsAt,
+    endsAt,
+    preferredDate,
+    preferredTime,
     source = 'typebot'
   } = req.body;
 
@@ -165,18 +277,18 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Nombre y email son obligatorios para la admision.' });
   }
 
-  const medicalNotes = [
-    `Origen: ${source}`,
-    reason ? `Motivo: ${reason}` : null,
-    pain ? `Dolor: ${pain}` : null,
-    area ? `Zona afectada: ${area}` : null,
-    availability ? `Disponibilidad: ${availability}` : null
-  ]
-    .filter(Boolean)
-    .join('\n');
+  const medicalNotes = buildIntakeNotes({
+    source,
+    reason,
+    pain,
+    area,
+    availability,
+    preferredDate,
+    preferredTime
+  });
 
   const [patient, created] = await User.findOrCreate({
-    where: { email: String(email).trim().toLowerCase() },
+    where: { email: normalizeEmail(email) },
     defaults: {
       name,
       email,
@@ -195,9 +307,81 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
     });
   }
 
+  const physiotherapist = await findIntakePhysiotherapist({ physiotherapistId, physiotherapistEmail });
+  let appointment = null;
+  let appointmentCreated = false;
+  let appointmentMessage = 'Admision guardada. No se ha creado cita porque no hay fisioterapeuta activo.';
+
+  if (physiotherapist) {
+    const existingIntakeAppointment = await Appointment.findOne({
+      where: {
+        patientId: patient.id,
+        status: { [Op.in]: ['pending', 'scheduled'] },
+        startsAt: { [Op.gt]: new Date() }
+      },
+      order: [['startsAt', 'ASC']]
+    });
+
+    if (existingIntakeAppointment) {
+      appointment = existingIntakeAppointment;
+      appointmentMessage = 'Admision guardada. El paciente ya tiene una cita pendiente o programada.';
+    } else {
+      const requestedSlot = resolveIntakeSlot({ startsAt, endsAt, preferredDate, preferredTime });
+      const preference = normalizePreference(`${availability || ''} ${preferredTime || ''}`);
+      const slot =
+        requestedSlot && !Number.isNaN(requestedSlot.startsAt.getTime()) && !Number.isNaN(requestedSlot.endsAt.getTime())
+          ? requestedSlot
+          : await findFirstAvailableSlot({ physiotherapistId: physiotherapist.id, preference });
+
+      if (!slot) {
+        appointmentMessage = 'Admision guardada. No se encontro un hueco automatico disponible para crear cita.';
+      } else if (slot.startsAt >= slot.endsAt) {
+        appointmentMessage = 'Admision guardada. La fecha indicada para la cita no es valida.';
+      } else {
+        try {
+          appointment = await sequelize.transaction(async (transaction) => {
+            await ensureBookableSlot({
+              startsAt: slot.startsAt,
+              endsAt: slot.endsAt,
+              physiotherapistId: physiotherapist.id,
+              transaction
+            });
+            await ensureNoAppointmentOverlap({
+              startsAt: slot.startsAt,
+              endsAt: slot.endsAt,
+              physiotherapistId: physiotherapist.id,
+              transaction
+            });
+
+            return Appointment.create(
+              {
+                patientId: patient.id,
+                physiotherapistId: physiotherapist.id,
+                title: 'Solicitud Typebot - Valoracion inicial',
+                treatmentType: 'Valoracion inicial',
+                startsAt: slot.startsAt,
+                endsAt: slot.endsAt,
+                status: 'pending',
+                notes: medicalNotes
+              },
+              { transaction }
+            );
+          });
+          appointmentCreated = true;
+          appointmentMessage = 'Cita pendiente creada desde la admision Typebot.';
+        } catch (error) {
+          appointmentMessage = `Admision guardada. No se pudo crear la cita automaticamente: ${error.message}`;
+        }
+      }
+    }
+  }
+
   return res.status(created ? 201 : 200).json({
     patient,
     created,
+    appointment,
+    appointmentCreated,
+    appointmentMessage,
     message: created ? 'Paciente creado desde Typebot.' : 'Paciente actualizado desde Typebot.'
   });
 });
@@ -665,6 +849,10 @@ const createReport = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Paciente, titulo y contenido son obligatorios.' });
   }
 
+  if (type && !Report.REPORT_TYPES.includes(type)) {
+    return res.status(400).json({ message: 'Tipo de reporte invalido.' });
+  }
+
   const patient = await User.findOne({ where: { id: patientId, role: 'paciente', isActive: true } });
   if (!patient) {
     return res.status(400).json({ message: 'Paciente no encontrado o inactivo.' });
@@ -684,12 +872,12 @@ const createReport = asyncHandler(async (req, res) => {
   const report = await Report.create({
     patientId,
     authorId: req.user.id,
-    appointmentId,
-    type,
-    title,
-    content,
-    diagnosis,
-    treatmentPlan,
+    appointmentId: cleanOptionalText(appointmentId),
+    type: type || 'evolution',
+    title: String(title).trim(),
+    content: String(content).trim(),
+    diagnosis: cleanOptionalText(diagnosis),
+    treatmentPlan: cleanOptionalText(treatmentPlan),
     isLocked: Boolean(isLocked && isAdmin(req.user))
   });
 
@@ -775,6 +963,10 @@ const createConsent = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Paciente, titulo y cuerpo son obligatorios.' });
   }
 
+  if (type && !Consent.CONSENT_TYPES.includes(type)) {
+    return res.status(400).json({ message: 'Tipo de consentimiento invalido.' });
+  }
+
   const patient = await User.findOne({ where: { id: patientId, role: 'paciente', isActive: true } });
   if (!patient) {
     return res.status(400).json({ message: 'Paciente no encontrado o inactivo.' });
@@ -783,10 +975,10 @@ const createConsent = asyncHandler(async (req, res) => {
   const consent = await Consent.create({
     patientId,
     issuedById: req.user.id,
-    type,
-    title,
-    body,
-    expiresAt
+    type: type || 'treatment',
+    title: String(title).trim(),
+    body: String(body).trim(),
+    expiresAt: cleanOptionalText(expiresAt)
   });
 
   return res.status(201).json({ consent });

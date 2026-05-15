@@ -46,6 +46,24 @@ services:
     networks:
       - physio-network
 
+  typebot-db:
+    image: postgres:15
+    container_name: physiosafe_typebot_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${TYPEBOT_DB_NAME}
+      POSTGRES_USER: ${TYPEBOT_DB_USER}
+      POSTGRES_PASSWORD: ${TYPEBOT_DB_PASSWORD}
+    volumes:
+      - typebot_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TYPEBOT_DB_USER} -d ${TYPEBOT_DB_NAME} -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - physio-network
+
   typebot-viewer:
     image: baptistearno/typebot-viewer:latest
     container_name: physiosafe_bot_viewer
@@ -53,7 +71,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      DATABASE_URL: postgresql://${TYPEBOT_DB_USER}:${TYPEBOT_DB_PASSWORD}@typebot-db:5432/${TYPEBOT_DB_NAME}
       ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
       TYPEBOT_WEBHOOK_SECRET: ${TYPEBOT_WEBHOOK_SECRET}
       NEXTAUTH_URL: ${TYPEBOT_BUILDER_URL}
@@ -63,7 +81,7 @@ services:
     ports:
       - "${TYPEBOT_VIEWER_PORT}:3000"
     depends_on:
-      db:
+      typebot-db:
         condition: service_healthy
     networks:
       - physio-network
@@ -75,7 +93,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      DATABASE_URL: postgresql://${TYPEBOT_DB_USER}:${TYPEBOT_DB_PASSWORD}@typebot-db:5432/${TYPEBOT_DB_NAME}
       ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
       TYPEBOT_WEBHOOK_SECRET: ${TYPEBOT_WEBHOOK_SECRET}
       NEXTAUTH_URL: ${TYPEBOT_BUILDER_URL}
@@ -84,7 +102,7 @@ services:
     ports:
       - "${TYPEBOT_BUILDER_PORT}:3000"
     depends_on:
-      db:
+      typebot-db:
         condition: service_healthy
       typebot-viewer:
         condition: service_started
@@ -119,6 +137,7 @@ services:
 
 volumes:
   postgres_data:
+  typebot_postgres_data:
 
 networks:
   physio-network:

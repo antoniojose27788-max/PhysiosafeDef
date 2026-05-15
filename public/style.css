@@ -758,6 +758,28 @@ textarea.form-control {
   transform: translateY(-3px);
 }
 
+.primary-action:disabled,
+.secondary-action:disabled,
+.mini-action:disabled {
+  cursor: wait;
+  opacity: 0.7;
+  transform: none;
+}
+
+.is-loading {
+  position: relative;
+}
+
+.is-loading::after {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: #fff;
+  border-radius: 999px;
+  content: "";
+  animation: spin 0.7s linear infinite;
+}
+
 .form-feedback {
   min-height: 24px;
   margin: 16px 0 0;
@@ -766,11 +788,23 @@ textarea.form-control {
 }
 
 .form-feedback.error {
+  display: inline-flex;
+  width: fit-content;
+  padding: 10px 12px;
+  border: 1px solid rgba(204, 61, 90, 0.18);
+  border-radius: var(--radius);
   color: var(--danger);
+  background: rgba(204, 61, 90, 0.08);
 }
 
 .form-feedback.success {
-  color: var(--ok);
+  display: inline-flex;
+  width: fit-content;
+  padding: 10px 12px;
+  border: 1px solid rgba(45, 159, 111, 0.18);
+  border-radius: var(--radius);
+  color: #116343;
+  background: rgba(45, 159, 111, 0.1);
 }
 
 .dashboard-topbar {
@@ -1402,6 +1436,22 @@ textarea.form-control {
   border: 0;
 }
 
+.typebot-live-panel .panel-header p:last-child {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.typebot-embed-shell {
+  min-height: 600px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.58);
+}
+
 .compact-records {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -1622,6 +1672,12 @@ textarea.form-control {
   50% {
     transform: scale(1.08);
     opacity: 0.86;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

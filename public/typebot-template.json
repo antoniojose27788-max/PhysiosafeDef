@@ -294,33 +294,49 @@
   "variables": [
     {
       "id": "var-name",
-      "name": "Nombre paciente"
+      "name": "name"
     },
     {
       "id": "var-phone",
-      "name": "Telefono"
+      "name": "phone"
     },
     {
       "id": "var-email",
-      "name": "Email"
+      "name": "email"
     },
     {
       "id": "var-reason",
-      "name": "Motivo consulta"
+      "name": "reason"
     },
     {
       "id": "var-pain",
-      "name": "Nivel dolor"
+      "name": "pain"
     },
     {
       "id": "var-area",
-      "name": "Zona afectada"
+      "name": "area"
     },
     {
       "id": "var-availability",
-      "name": "Disponibilidad"
+      "name": "availability"
     }
   ],
+  "physiosafeWebhook": {
+    "method": "POST",
+    "path": "/api/typebot/intake",
+    "requiredHeader": "X-PhysioSafe-Typebot-Secret",
+    "bodyExample": {
+      "name": "{{name}}",
+      "email": "{{email}}",
+      "phone": "{{phone}}",
+      "reason": "{{reason}}",
+      "pain": "{{pain}}",
+      "area": "{{area}}",
+      "availability": "{{availability}}",
+      "source": "typebot"
+    },
+    "optionalFields": ["preferredDate", "preferredTime", "startsAt", "endsAt", "physiotherapistEmail"]
+  },
   "theme": {},
   "settings": {
     "general": {

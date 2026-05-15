@@ -55,11 +55,41 @@ const request = async (path, options = {}) => {
 const readForm = (form) => {
   const payload = Object.fromEntries(new FormData(form).entries());
   Object.keys(payload).forEach((key) => {
+    if (typeof payload[key] === 'string') {
+      payload[key] = payload[key].trim();
+    }
+
     if (payload[key] === '') {
       delete payload[key];
     }
   });
   return payload;
+};
+
+const setSubmitState = (form, submitting) => {
+  const button = form.querySelector('button[type="submit"]');
+  if (!button) return;
+  button.disabled = submitting;
+  button.classList.toggle('is-loading', submitting);
+};
+
+const submitResourceForm = async ({ form, path, payload, successMessage }) => {
+  setSubmitState(form, true);
+  setFeedback('Guardando...');
+
+  try {
+    await request(path, {
+      method: 'POST',
+      body: JSON.stringify(payload || readForm(form))
+    });
+    form.reset();
+    await refreshAll();
+    setFeedback(successMessage, 'success');
+  } catch (error) {
+    setFeedback(error.message, 'error');
+  } finally {
+    setSubmitState(form, false);
+  }
 };
 
 const formatDate = (value) =>
@@ -615,12 +645,12 @@ document.querySelector('#nextMonthButton').addEventListener('click', () => {
 document.querySelector('#appointmentForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   try {
-    await request('/appointments', {
-      method: 'POST',
-      body: JSON.stringify(readAppointmentForm(event.currentTarget))
+    await submitResourceForm({
+      form: event.currentTarget,
+      path: '/appointments',
+      payload: readAppointmentForm(event.currentTarget),
+      successMessage: state.user?.role === 'paciente' ? 'Solicitud de cita enviada.' : 'Cita creada correctamente.'
     });
-    event.currentTarget.reset();
-    await refreshAll();
   } catch (error) {
     setFeedback(error.message, 'error');
   }
@@ -647,44 +677,29 @@ document.querySelector('#scheduleBlockForm').addEventListener('submit', async (e
 
 document.querySelector('#reportForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  try {
-    await request('/reports', {
-      method: 'POST',
-      body: JSON.stringify(readForm(event.currentTarget))
-    });
-    event.currentTarget.reset();
-    await refreshAll();
-  } catch (error) {
-    setFeedback(error.message, 'error');
-  }
+  await submitResourceForm({
+    form: event.currentTarget,
+    path: '/reports',
+    successMessage: 'Reporte clinico creado correctamente.'
+  });
 });
 
 document.querySelector('#consentForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  try {
-    await request('/consents', {
-      method: 'POST',
-      body: JSON.stringify(readForm(event.currentTarget))
-    });
-    event.currentTarget.reset();
-    await refreshAll();
-  } catch (error) {
-    setFeedback(error.message, 'error');
-  }
+  await submitResourceForm({
+    form: event.currentTarget,
+    path: '/consents',
+    successMessage: 'Consentimiento emitido correctamente.'
+  });
 });
 
 document.querySelector('#userForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  try {
-    await request('/users', {
-      method: 'POST',
-      body: JSON.stringify(readForm(event.currentTarget))
-    });
-    event.currentTarget.reset();
-    await refreshAll();
-  } catch (error) {
-    setFeedback(error.message, 'error');
-  }
+  await submitResourceForm({
+    form: event.currentTarget,
+    path: '/users',
+    successMessage: 'Usuario creado correctamente.'
+  });
 });
 
 document.addEventListener('click', async (event) => {
@@ -852,19 +867,25 @@ const assistantKnowledge = [
     keywords: ['typebot', 'bot', 'asistente', 'webhook', 'admision', 'plantilla', 'triaje'],
     section: 'assistant',
     answer:
-      'En Asistente tienes el centro de admision: puedes probar el flujo, editarlo en Typebot, descargar la plantilla y conectar el webhook /api/typebot/intake.'
+      'En Asistente tienes el circuito de admision. El Typebot publicado recoge datos, envia el webhook protegido y PhysioSafe crea o actualiza el paciente; si encuentra hueco real, deja una cita pendiente.'
+  },
+  {
+    keywords: ['conectar typebot', 'configurar typebot', 'payload typebot', 'variables typebot'],
+    section: 'assistant',
+    answer:
+      'Configura Typebot con una peticion POST a /api/typebot/intake, header X-PhysioSafe-Typebot-Secret y variables name, email, phone, reason, pain, area y availability. Si anades preferredDate/preferredTime o startsAt/endsAt, intentara reservar ese hueco.'
   },
   {
     keywords: ['probar asistente', 'editar flujo', 'builder', 'viewer'],
     section: 'assistant',
     answer:
-      'Usa Probar asistente para ver la experiencia del paciente y Editar flujo para ajustar preguntas. La plantilla JSON te sirve como punto de partida.'
+      'Usa Probar asistente para abrir el flujo publicado. El panel Asistente tambien lo muestra embebido para que el paciente lo pueda completar desde PhysioSafe.'
   },
   {
     keywords: ['admisiones', 'primera visita', 'motivo consulta', 'dolor'],
     section: 'assistant',
     answer:
-      'El flujo de admision debe recoger motivo, dolor, zona afectada, urgencia y disponibilidad. Con eso el equipo puede preparar mejor la primera visita.'
+      'El flujo de admision debe recoger identidad, motivo, dolor, zona afectada, urgencia y disponibilidad. Con esos datos el sistema prepara la ficha y puede crear una cita pendiente para que el equipo la valide.'
   },
   {
     keywords: ['resumen', 'estadisticas', 'stats', 'dashboard', 'indicadores'],
@@ -903,7 +924,7 @@ const buildAssistant = () => {
         </button>
       </header>
       <section class="assistant-messages" aria-live="polite">
-        <article class="assistant-message bot">Estoy conectado al panel. Puedo ayudarte con citas, calendario, usuarios, reportes, consentimientos, resumen y admision.</article>
+        <article class="assistant-message bot">Estoy conectado al panel. Puedo orientarte por seccion, resumir lo que ves y explicar como usar citas, calendario, usuarios, reportes, consentimientos y admision.</article>
       </section>
       <nav class="assistant-suggestions" aria-label="Preguntas sugeridas">
         <button type="button">Como pide cita un paciente?</button>

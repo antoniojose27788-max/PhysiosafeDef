@@ -9,6 +9,8 @@ const state = {
   physiotherapists: [],
   appointments: [],
   scheduleBlocks: [],
+  appointmentsByDate: new Map(),
+  scheduleBlockByDate: new Map(),
   availability: [],
   calendarDate: new Date()
 };
@@ -136,6 +138,26 @@ const formatDateOnlyLocal = (value) => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const rebuildCalendarIndexes = () => {
+  const appointmentsByDate = new Map();
+  state.appointments.forEach((appointment) => {
+    const key = formatDateOnlyLocal(new Date(appointment.startsAt));
+    const bucket = appointmentsByDate.get(key);
+    if (bucket) {
+      bucket.push(appointment);
+    } else {
+      appointmentsByDate.set(key, [appointment]);
+    }
+  });
+  state.appointmentsByDate = appointmentsByDate;
+
+  const scheduleBlockByDate = new Map();
+  state.scheduleBlocks.forEach((block) => {
+    scheduleBlockByDate.set(block.date, block);
+  });
+  state.scheduleBlockByDate = scheduleBlockByDate;
 };
 
 const roleLabel = (role) =>
@@ -402,6 +424,7 @@ const loadScheduleBlocks = async () => {
   if (!['admin', 'fisioterapeuta'].includes(state.user?.role)) return;
   const { blocks } = await request('/schedule-blocks');
   state.scheduleBlocks = blocks;
+  rebuildCalendarIndexes();
   renderScheduleBlocks();
 };
 
@@ -464,6 +487,7 @@ const renderAppointments = (appointments) => {
 const loadAppointments = async () => {
   const { appointments } = await request('/appointments');
   state.appointments = appointments;
+  rebuildCalendarIndexes();
   renderAppointments(appointments);
   renderCalendar();
 };
@@ -505,9 +529,9 @@ const renderCalendar = () => {
   for (let index = 0; index < 42; index += 1) {
     const date = new Date(monthStart);
     date.setDate(monthStart.getDate() + index);
-
-    const appointments = state.appointments.filter((appointment) => sameDay(new Date(appointment.startsAt), date));
-    const scheduleBlock = state.scheduleBlocks.find((block) => block.date === formatDateOnlyLocal(date));
+    const dateKey = formatDateOnlyLocal(date);
+    const appointments = state.appointmentsByDate.get(dateKey) || [];
+    const scheduleBlock = state.scheduleBlockByDate.get(dateKey);
     const muted = date.getMonth() !== visibleMonth ? 'muted-day' : '';
     const current = sameDay(date, today) ? 'today-day' : '';
     const blocked = scheduleBlock || [0, 6].includes(date.getDay()) ? 'blocked-day' : '';

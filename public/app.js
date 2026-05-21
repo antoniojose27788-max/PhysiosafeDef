@@ -49,8 +49,14 @@ const loadSetupStatus = async () => {
     registerRole = needsAdmin ? 'admin' : 'paciente';
 
     if (needsAdmin) {
-      document.querySelector('[data-auth-mode="register"]').innerHTML =
+      const registerButton = document.querySelector('[data-auth-mode="register"]');
+      registerButton.innerHTML =
         '<i class="fa-solid fa-user-shield" aria-hidden="true"></i> Primer admin';
+      modeButtons.forEach((item) => item.classList.toggle('active', item === registerButton));
+      loginForm.classList.add('d-none');
+      registerForm.classList.remove('d-none');
+      registerForm.querySelector('button[type="submit"]').innerHTML =
+        '<i class="fa-solid fa-user-shield" aria-hidden="true"></i> Crear administrador';
       setFeedback('No hay usuarios todavia. Crea el primer administrador para inicializar PhysioSafe.');
     }
   } catch (error) {
@@ -93,7 +99,7 @@ loginForm.addEventListener('submit', async (event) => {
 
 registerForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-  setFeedback('Creando cuenta de paciente...');
+  setFeedback(registerRole === 'admin' ? 'Creando primer administrador...' : 'Creando cuenta de paciente...');
 
   try {
     const payload = readForm(registerForm);
@@ -102,7 +108,7 @@ registerForm.addEventListener('submit', async (event) => {
       method: 'POST',
       body: JSON.stringify(payload)
     });
-    setFeedback('Cuenta creada. Entrando...', 'success');
+    setFeedback(registerRole === 'admin' ? 'Administrador creado. Inicializando panel...' : 'Cuenta creada. Entrando...', 'success');
     persistSession(session);
   } catch (error) {
     setFeedback(error.message, 'error');
@@ -135,6 +141,57 @@ if (headerMenuToggle && headerMobileMenu) {
     }
   });
 }
+
+const initMotionSystem = () => {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  document.body.classList.add('motion-ready');
+
+  const mark = (selector, type = 'fade-up') => {
+    document.querySelectorAll(selector).forEach((element, index) => {
+      if (!element.dataset.animate) {
+        element.dataset.animate = type;
+        element.style.setProperty('--stagger', String(Math.min(index, 9)));
+      }
+    });
+  };
+
+  mark('.service-card, .trust-strip article, .identity-ribbon article', 'fade-up');
+  mark('.process-list article, .precision-grid article', 'scale-in');
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.16, rootMargin: '0px 0px -8% 0px' }
+  );
+
+  document.querySelectorAll('[data-animate]').forEach((element) => observer.observe(element));
+
+  const attachTilt = (element) => {
+    element.classList.add('magnetic-card');
+    element.addEventListener('pointermove', (event) => {
+      const rect = element.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width - 0.5;
+      const y = (event.clientY - rect.top) / rect.height - 0.5;
+      element.style.setProperty('--tilt-x', `${x * 4}deg`);
+      element.style.setProperty('--tilt-y', `${y * -4}deg`);
+    });
+    element.addEventListener('pointerleave', () => {
+      element.style.setProperty('--tilt-x', '0deg');
+      element.style.setProperty('--tilt-y', '0deg');
+    });
+  };
+
+  document
+    .querySelectorAll('.service-card, .precision-grid article')
+    .forEach(attachTilt);
+};
 
 const assistantKnowledge = [
   {
@@ -308,3 +365,4 @@ const buildAssistant = () => {
 
 buildAssistant();
 loadSetupStatus();
+initMotionSystem();

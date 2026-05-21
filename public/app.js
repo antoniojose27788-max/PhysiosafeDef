@@ -4,6 +4,8 @@ const loginForm = document.querySelector('#loginForm');
 const registerForm = document.querySelector('#registerForm');
 const feedback = document.querySelector('#authFeedback');
 const modeButtons = document.querySelectorAll('[data-auth-mode]');
+const headerMenuToggle = document.querySelector('.header-menu-toggle');
+const headerMobileMenu = document.querySelector('#mobileMenu');
 let registerRole = 'paciente';
 
 const setFeedback = (message, type = '') => {
@@ -110,6 +112,28 @@ registerForm.addEventListener('submit', async (event) => {
 if (localStorage.getItem('physiosafe_token')) {
   document.querySelector('.ghost-link').textContent = 'Ir al dashboard';
   document.querySelector('.ghost-link').setAttribute('href', '/dashboard.html');
+}
+
+if (headerMenuToggle && headerMobileMenu) {
+  const setMenuOpen = (open) => {
+    headerMobileMenu.hidden = !open;
+    headerMenuToggle.setAttribute('aria-expanded', String(open));
+    document.body.classList.toggle('menu-open', open);
+  };
+
+  headerMenuToggle.addEventListener('click', () => {
+    setMenuOpen(headerMobileMenu.hidden);
+  });
+
+  headerMobileMenu.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => setMenuOpen(false));
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 860) {
+      setMenuOpen(false);
+    }
+  });
 }
 
 const assistantKnowledge = [

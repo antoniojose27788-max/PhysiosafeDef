@@ -1,128 +1,291 @@
-# Memoria de Programa y Aplicacion - PhysioSafe
+# Memoria Actualizada - PhysioSafe
 
-## 1. Objetivo
+## 1. Estado actual
 
-PhysioSafe es una aplicacion web para una clinica de fisioterapia. Su objetivo es centralizar la gestion de pacientes, fisioterapeutas, administradores, citas, calendario, reportes clinicos, consentimientos y admision asistida mediante Typebot.
+PhysioSafe es una aplicacion web para gestion de clinica de fisioterapia con foco en:
 
-La aplicacion busca que cada rol trabaje con una vista clara y segura:
+- acceso seguro por roles
+- agenda y citas sin solapes
+- calendario con dias no laborables
+- reportes clinicos
+- consentimientos
+- admision asistida mediante Typebot
 
-- El paciente solicita citas, consulta sus reportes y firma consentimientos.
-- El fisioterapeuta gestiona su agenda, sus pacientes, reportes y disponibilidad.
-- El administrador controla usuarios, disponibilidad general, citas y documentacion clinica.
+La aplicacion dispone de una portada publica, un dashboard por rol y una integracion activa de Typebot embebido en el panel del asistente.
 
-## 2. Roles y permisos
+Esta memoria refleja el estado funcional y visual del proyecto a fecha de actualizacion dentro del workspace local.
+
+## 2. Objetivo del producto
+
+PhysioSafe busca ordenar el recorrido completo del paciente y del equipo clinico:
+
+- captacion y acceso
+- admision previa
+- solicitud o creacion de cita
+- seguimiento de disponibilidad real
+- documentacion clinica
+- consentimientos
+- continuidad asistencial
+
+El producto esta orientado a venta futura como solucion de gestion para clinicas de fisioterapia, con una base preparada para seguir ampliando modulos sin rehacer la estructura central.
+
+## 3. Roles y permisos
 
 ### Administrador
 
-Puede crear usuarios internos, gestionar pacientes, fisioterapeutas, citas, reportes, consentimientos y dias no laborables. Es el rol con mayor control operativo.
+Puede:
+
+- crear usuarios internos
+- gestionar pacientes y fisioterapeutas
+- crear, validar y cancelar citas
+- bloquear dias no laborables
+- crear reportes y consentimientos
+- acceder a usuarios, asistente y configuracion operativa del panel
 
 ### Fisioterapeuta
 
-Puede trabajar con su agenda clinica, crear citas, bloquear dias no laborables propios, emitir reportes y gestionar consentimientos de pacientes asignados a su actividad.
+Puede:
+
+- trabajar con su agenda
+- crear y gestionar citas
+- bloquear dias no laborables propios
+- emitir reportes
+- gestionar consentimientos relacionados con su actividad
 
 ### Paciente
 
-Puede registrarse sin limite artificial de cantidad, solicitar citas disponibles, consultar sus reportes y firmar o revocar consentimientos cuando corresponda.
+Puede:
 
-No existe un limite maximo de pacientes en el codigo. La captacion de pacientes queda abierta para favorecer el crecimiento de la clinica.
+- registrarse desde la portada publica
+- iniciar sesion
+- solicitar citas segun disponibilidad real
+- consultar sus reportes visibles
+- firmar o revocar consentimientos
 
-## 3. Modulos principales
+## 4. Modulos funcionales
 
-### Acceso y registro
+### 4.1 Portada publica
 
-La portada permite iniciar sesion o crear cuenta de paciente. Si la base de datos esta vacia, el primer registro se convierte en administrador inicial para arrancar el sistema.
+La portada incluye:
 
-### Dashboard
+- login y registro de paciente
+- secciones informativas de servicios
+- header rediseñado con navegacion y menu hamburguesa para movil
+- footer ampliado con informacion comercial y accesos rapidos
+- logos personalizados para la marca
+- fondo visual con particulas en movimiento
 
-Es el centro de control de la clinica. Muestra resumen, indicadores, citas, calendario, reportes, consentimientos, usuarios y asistente.
+La portada esta orientada a una presentacion mas comercial y menos tecnica.
 
-### Citas
+### 4.2 Dashboard
 
-Permite crear o solicitar citas. El sistema valida:
+El dashboard es el centro de control principal y contiene:
 
-- Que exista paciente y fisioterapeuta.
-- Que la cita tenga inicio y fin validos.
-- Que no haya solapes activos para el fisioterapeuta.
-- Que el dia no este bloqueado como no laborable.
-- Que el horario entre en la jornada base de lunes a viernes, de 09:00 a 18:00.
+- resumen
+- citas
+- calendario
+- reportes
+- consentimientos
+- usuarios
+- asistente
 
-Cuando la cita la solicita un paciente, queda en estado pendiente para revision del equipo.
+La interfaz ha sido revisada para verse mas moderna, clara y preparada para exposicion de producto.
 
-### Disponibilidad y calendario
+### 4.3 Citas
 
-El calendario muestra citas por mes y permite que administradores y fisioterapeutas bloqueen dias no laborables. Estos bloqueos afectan a la disponibilidad que ven los pacientes.
+El sistema de citas valida:
 
-El paciente no reserva a ciegas: al elegir fisioterapeuta, la aplicacion consulta huecos disponibles y muestra dias libres, completos o no disponibles.
+- existencia de paciente y fisioterapeuta
+- fecha de inicio y fin correctas
+- ausencia de solapes activos
+- bloqueo de dias no laborables
+- disponibilidad real del fisioterapeuta
 
-### Reportes clinicos
+Cuando la cita la solicita un paciente, queda en estado pendiente.
 
-Los reportes documentan evolucion, diagnostico, alta, incidencias y plan de tratamiento. Sirven para mantener trazabilidad clinica.
+### 4.4 Calendario y dias no laborables
 
-### Consentimientos
+El calendario mensual muestra:
 
-El equipo emite consentimientos y el paciente puede firmarlos o revocarlos segun estado. El sistema registra firma, fecha y hash de firma.
+- citas por dia
+- estados de actividad
+- bloqueos
+- fines de semana
 
-### Asistente Typebot
+El problema de desplazamiento de fecha en dias bloqueados ya fue corregido: el dia seleccionado se respeta correctamente sin saltar al siguiente.
 
-La seccion Asistente integra el Typebot publicado:
+### 4.5 Reportes
 
-https://typebot.co/physio-safe-admision-y-triaje-tnmszul
+Los reportes admiten tipos:
 
-Su finalidad es recoger informacion previa a la primera cita:
+- evolucion
+- diagnostico
+- alta
+- incidencia
 
-- Datos basicos.
-- Motivo de consulta.
-- Dolor.
-- Zona afectada.
-- Disponibilidad.
-- Informacion util de triaje.
+La interfaz ya traduce correctamente los tipos visibles al usuario. Ya no deben aparecer valores crudos como `incident` en pantalla.
 
-El webhook de admision disponible en la API es:
+### 4.6 Consentimientos
 
-POST http://localhost:3000/api/typebot/intake
+Permite:
 
-Header requerido:
+- crear consentimientos
+- firmarlos
+- revocarlos
+- visualizar estados
 
-X-PhysioSafe-Typebot-Secret
+El sistema conserva trazabilidad de firma y estado.
 
-## 4. Arquitectura tecnica
+### 4.7 Asistente y admision Typebot
+
+El dashboard integra un flujo Typebot publicado y embebido para admision y triaje.
+
+Objetivo del flujo:
+
+- recoger datos basicos
+- recoger motivo de consulta
+- recoger dolor y evolucion
+- recoger disponibilidad
+- orientar prioridad inicial
+
+La zona del asistente fue limpiada para que no muestre botones o mensajes internos de desarrollo como apertura directa de Typebot, descarga de plantilla o referencias locales visibles al cliente.
+
+Actualmente se conserva la accion visible de probar asistente y el Typebot embebido en el panel.
+
+## 5. Estado visual y de marca
+
+### 5.1 Branding
+
+La aplicacion usa logos personalizados nuevos:
+
+- uno para la portada publica
+- otro para el dashboard
+
+Los logos ya no usan borde, bisel ni contenedor cuadrado. Su tratamiento actual es redondo y limpio.
+
+### 5.2 Header
+
+La portada ya tiene:
+
+- header mas vistoso
+- CTA claros
+- navegacion superior
+- menu hamburguesa trabajado en movil
+
+### 5.3 Footer
+
+El footer publico fue ampliado para incluir:
+
+- bloque de marca
+- mensaje de valor
+- accesos rapidos
+- recorrido asistencial
+- cobertura del sistema
+- acciones finales centradas
+
+### 5.4 Particulas y atmosfera visual
+
+La portada y el dashboard tienen fondos con particulas animadas.
+
+Se han ido reforzando visualmente para dar mas presencia sin invadir el contenido. El tratamiento sigue siendo utilizable, aunque puede seguir afinandose en futuras iteraciones de UI.
+
+## 6. Arquitectura tecnica
 
 ### Backend
 
-Servidor Node.js con Express. Expone endpoints REST bajo `/api`. Usa JWT para autenticacion y Sequelize como ORM.
+- Node.js
+- Express
+- Sequelize
+- JWT
+- PostgreSQL
 
-### Base de datos
+El backend expone API REST bajo `/api`.
 
-Se usan modelos principales:
+Incluye:
 
-- User
-- Appointment
-- Report
-- Consent
-- ScheduleBlock
-
-`ScheduleBlock` representa dias no laborables o bloqueados.
+- autenticacion
+- citas
+- disponibilidad
+- calendario
+- reportes
+- consentimientos
+- usuarios
+- intake de Typebot
 
 ### Frontend
 
-HTML, CSS y JavaScript vanilla servido desde `public/`. Bootstrap y Font Awesome se usan como apoyo visual. La UI incluye responsive, tarjetas, calendario visual, paneles por rol y asistente flotante.
+- HTML
+- CSS
+- JavaScript vanilla
+- Bootstrap 5 como apoyo
+- Font Awesome para iconografia
 
-### Docker
+La UI no usa framework SPA; el comportamiento se gestiona con scripts directos en `public/`.
 
-La aplicacion se ejecuta con Docker Compose. El servicio `web-app` sirve la aplicacion en `localhost:3000`. Typebot builder/viewer pueden estar en contenedores locales, pero la integracion principal del asistente usa el Typebot publicado en `typebot.co`.
+### Infraestructura
 
-## 5. Flujo recomendado de uso
+El proyecto contiene servicios en Docker Compose para:
 
-1. Crear el primer administrador si el sistema esta vacio.
-2. El administrador da de alta fisioterapeutas.
-3. Los pacientes se registran libremente o son creados por el administrador.
-4. El equipo configura dias no laborables en Calendario.
-5. El paciente consulta disponibilidad y solicita cita.
-6. El equipo valida o gestiona la cita.
-7. El fisioterapeuta documenta reportes y consentimientos.
-8. El paciente consulta y firma la documentacion.
-9. Typebot ayuda a preparar admisiones antes de la primera consulta.
+- aplicacion web
+- PostgreSQL principal
+- PostgreSQL de Typebot
+- Typebot viewer
+- Typebot builder
+- Nginx Proxy Manager
+- Cloudflared opcional
 
-## 6. Sentido de negocio
+## 7. Rutas y ficheros clave
 
-PhysioSafe ordena el circuito completo de una clinica de fisioterapia: captacion, admision, agenda, tratamiento, documentacion y seguimiento. La aplicacion esta pensada para crecer con mas pacientes sin limitar registros, mientras mantiene control sobre roles internos y seguridad de datos clinicos.
+### Backend
+
+- `server.js`
+- `controllers/apiController.js`
+- `routes/`
+- `models/`
+
+### Frontend
+
+- `public/index.html`
+- `public/dashboard.html`
+- `public/app.js`
+- `public/dashboard.js`
+- `public/style.css`
+
+### Documentacion
+
+- `docs/MEMORIA_PHYSIOSAFE.md`
+
+## 8. Situacion comercial actual
+
+La aplicacion ya esta bastante mas cerca de una version presentable para cliente porque:
+
+- se han eliminado varios mensajes demasiado tecnicos o internos
+- se ha reforzado la identidad visual
+- se ha limpiado el asistente para que no exponga herramientas de desarrollo
+- la navegacion publica es mas cuidada
+- el dashboard tiene una presentacion mas seria y estructurada
+
+## 9. Puntos a seguir mejorando
+
+Aunque el producto esta mas maduro, siguen siendo recomendables estas lineas de evolucion:
+
+- revision visual final en navegador de todos los estados responsive
+- unificacion completa de textos comerciales y clinicos para eliminar cualquier tono tecnico residual
+- mejora del flujo de Typebot hacia una bandeja de admisiones real
+- recordatorios por email o WhatsApp
+- asignacion inteligente de fisioterapeuta
+- endurecimiento de despliegue para entorno de produccion real
+- revision de cacheado y versionado de assets
+- documentacion comercial y tecnica separadas
+
+## 10. Conclusiones
+
+PhysioSafe ya no es solo una base funcional: actualmente combina operativa clinica, admision digital y una capa visual bastante mas preparada para presentacion.
+
+El proyecto queda registrado como una aplicacion en evolucion, con:
+
+- base tecnica funcional
+- flujo clinico coherente
+- Typebot integrado
+- UI en proceso avanzado de pulido comercial
+- estructura apta para seguir creciendo

@@ -7,19 +7,81 @@
     <title>PhysioSafe | Acceso seguro</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-    <link href="/style.css?v=20260521-ui5" rel="stylesheet">
+    <link href="/style.css?v=20260521-ui8" rel="stylesheet">
   </head>
   <body class="auth-surface">
     <header class="auth-header container">
-      <nav class="brand-nav" aria-label="Navegacion principal">
-        <a class="brand-mark" href="/" aria-label="PhysioSafe">
-          <span class="brand-mark__icon brand-mark__icon--login" aria-hidden="true">
-            <img src="/images/logo-login.png" alt="">
-          </span>
-          <strong>PhysioSafe</strong>
-        </a>
-        <a class="ghost-link" href="#access">Acceder</a>
-      </nav>
+      <section class="header-shell">
+        <nav class="brand-nav" aria-label="Navegacion principal">
+          <a class="brand-mark" href="/" aria-label="PhysioSafe">
+            <span class="brand-mark__icon brand-mark__icon--login" aria-hidden="true">
+              <img src="/images/logo-login.png" alt="">
+            </span>
+            <span class="brand-copy">
+              <strong>PhysioSafe</strong>
+            </span>
+          </a>
+          <button class="header-menu-toggle" type="button" aria-expanded="false" aria-controls="mobileMenu" aria-label="Abrir menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+          <section class="header-mobile-menu" id="mobileMenu" hidden>
+            <section class="header-mobile-panel">
+              <section class="header-mobile-top">
+                <section class="header-pulse" aria-label="Estado del servicio">
+                  <span></span>
+                  <strong>Portal clinico activo</strong>
+                </section>
+              </section>
+              <section class="header-mobile-links" aria-label="Accesos principales">
+                <a href="#services">Servicios</a>
+                <a href="#method">Metodo</a>
+                <a href="#experience">Experiencia</a>
+              </section>
+              <section class="header-mobile-actions" aria-label="Acciones del portal">
+                <a class="ghost-link header-ghost-link" href="#services">
+                  <i class="fa-solid fa-stethoscope" aria-hidden="true"></i>
+                  Ver servicios
+                </a>
+                <a class="btn primary-action header-primary-action" href="#access">
+                  <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+                  Acceder
+                </a>
+              </section>
+            </section>
+          </section>
+          <section class="header-pulse" aria-label="Estado del servicio">
+            <span></span>
+            <strong>Portal clinico activo</strong>
+          </section>
+          <section class="header-links" aria-label="Accesos principales">
+            <a href="#services">Servicios</a>
+            <a href="#method">Metodo</a>
+            <a href="#experience">Experiencia</a>
+          </section>
+          <section class="header-actions" aria-label="Acciones del portal">
+            <a class="ghost-link header-ghost-link" href="#services">
+              <i class="fa-solid fa-stethoscope" aria-hidden="true"></i>
+              Ver servicios
+            </a>
+            <a class="btn primary-action header-primary-action" href="#access">
+              <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+              Acceder
+            </a>
+          </section>
+        </nav>
+        <section class="header-strip" aria-label="Resumen rapido PhysioSafe">
+          <article>
+            <small>Coordinacion</small>
+            <strong>Agenda, reportes y consentimientos alineados</strong>
+          </article>
+          <article>
+            <small>Operacion</small>
+            <strong>Admision guiada y continuidad asistencial desde el primer contacto</strong>
+          </article>
+        </section>
+      </section>
     </header>
 
     <main id="access">
@@ -229,7 +291,7 @@
         </section>
       </section>
 
-      <section class="clinical-band">
+      <section class="clinical-band" id="method">
         <section class="container clinical-layout">
           <article class="clinical-copy">
             <p class="eyebrow">Metodo PhysioSafe</p>
@@ -258,7 +320,7 @@
         </section>
       </section>
 
-      <section class="container precision-section" aria-label="Experiencia digital">
+      <section class="container precision-section" id="experience" aria-label="Experiencia digital">
         <article class="precision-panel">
           <p class="eyebrow">Experiencia digital</p>
           <h2>Una clinica que se siente ordenada desde el primer contacto.</h2>
@@ -284,35 +346,63 @@
     </main>
 
     <footer class="app-footer">
+      <section class="container footer-intro" aria-label="Presentacion final PhysioSafe">
+        <a class="brand-mark footer-brand-mark" href="/" aria-label="PhysioSafe">
+          <span class="brand-mark__icon brand-mark__icon--login" aria-hidden="true">
+            <img src="/images/logo-login.png" alt="">
+          </span>
+          <span class="brand-copy">
+            <strong>PhysioSafe</strong>
+          </span>
+        </a>
+        <h2>Una plataforma preparada para ordenar la experiencia del paciente y el trabajo del equipo.</h2>
+        <p>Desde la admision hasta la evolucion clinica, PhysioSafe concentra agenda, documentos, seguimiento y control operativo en un solo flujo claro.</p>
+      </section>
       <section class="container footer-grid" aria-label="Informacion final PhysioSafe">
         <article class="footer-brand">
-          <a class="brand-mark" href="/" aria-label="PhysioSafe">
-            <span class="brand-mark__icon brand-mark__icon--login" aria-hidden="true">
-              <img src="/images/logo-login.png" alt="">
-            </span>
-            <strong>PhysioSafe</strong>
-          </a>
-          <p>Gestion clinica digital para fisioterapia: admision, citas, reportes y consentimientos con una experiencia clara para paciente y equipo.</p>
+          <p class="footer-label">Centro de control</p>
+          <h3>Gestion clinica con foco en orden, trazabilidad y tiempo real.</h3>
+          <p>Unifica agenda, evolucion, consentimientos y coordinacion entre paciente, fisioterapeuta y administracion sin perder contexto entre visitas.</p>
+          <section class="footer-metrics" aria-label="Ventajas principales">
+            <article>
+              <strong>Agenda</strong>
+              <span>Sin solapes y con visibilidad diaria</span>
+            </article>
+            <article>
+              <strong>Documentos</strong>
+              <span>Consentimiento y reportes siempre a mano</span>
+            </article>
+          </section>
         </article>
         <article class="footer-module">
-          <span>Clinica</span>
-          <strong>Agenda inteligente</strong>
-          <small>Citas, disponibilidad, bloqueos y seguimiento del paciente desde un solo entorno.</small>
+          <span>Navegacion</span>
+          <strong>Accesos rapidos</strong>
+          <small><a href="#access">Entrar o crear cuenta</a></small>
+          <small><a href="#services">Ver servicios de fisioterapia</a></small>
+          <small><a href="#method">Conocer el metodo PhysioSafe</a></small>
+          <small><a href="#experience">Explorar la experiencia digital</a></small>
         </article>
         <article class="footer-module">
           <span>Paciente</span>
-          <strong>Proceso guiado</strong>
-          <small>Admision, documentos y reportes preparados para llegar mejor a consulta.</small>
+          <strong>Recorrido asistencial</strong>
+          <small>Admision previa con datos ordenados antes de la cita.</small>
+          <small>Seguimiento terapeutico y reportes de evolucion por fase.</small>
+          <small>Contexto mas claro para continuar tratamiento sin friccion.</small>
         </article>
         <article class="footer-module">
-          <span>Seguridad</span>
-          <strong>Acceso por rol</strong>
-          <small>Admin, fisioterapeuta y paciente trabajan con permisos diferenciados.</small>
+          <span>Operacion</span>
+          <strong>Cobertura del sistema</strong>
+          <small>Acceso por rol para administracion, fisioterapia y paciente.</small>
+          <small>Agenda, reportes, consentimientos y asistencia digital en el mismo portal.</small>
+          <small>Preparado para una clinica conectada y mas consistente en el dia a dia.</small>
         </article>
       </section>
       <section class="container footer-bottom">
         <small>PhysioSafe · fisioterapia conectada, datos protegidos y continuidad asistencial.</small>
-        <a href="#access">Acceder al portal</a>
+        <section class="footer-bottom-actions" aria-label="Acciones finales">
+          <a href="#services">Ver servicios</a>
+          <a href="#access">Acceder al portal</a>
+        </section>
       </section>
     </footer>
 

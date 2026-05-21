@@ -13,6 +13,16 @@ const state = {
   calendarDate: new Date()
 };
 
+const reportTypeLabel = (type) =>
+  (
+    {
+      evolution: 'Evolucion',
+      diagnostic: 'Diagnostico',
+      discharge: 'Alta',
+      incident: 'Incidencia'
+    }[type] || 'Reporte'
+  );
+
 const feedback = document.querySelector('#dashboardFeedback');
 const title = document.querySelector('#workspaceTitle');
 const sections = document.querySelectorAll('.dashboard-section');
@@ -543,7 +553,7 @@ const renderReports = (reports) => {
         <article class="record-card">
           <header>
             <h3>${report.title}</h3>
-            <span class="status-badge">${report.type}</span>
+            <span class="status-badge">${reportTypeLabel(report.type)}</span>
           </header>
           <small>Paciente: ${report.patient?.name || 'Paciente'}</small>
           <small>Autor: ${report.author?.name || 'Clinica'}</small>

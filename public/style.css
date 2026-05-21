@@ -104,26 +104,45 @@ textarea {
   gap: 10px;
 }
 
-.brand-mark i {
+.brand-mark__icon {
   position: relative;
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  color: #fff;
-  background: linear-gradient(135deg, var(--brand-light), var(--brand), var(--brand-dark));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.82);
   border-radius: var(--radius);
-  box-shadow: 0 14px 34px rgba(12, 143, 136, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow: 0 16px 38px rgba(12, 143, 136, 0.18);
   overflow: hidden;
 }
 
-.brand-mark i::after {
+.brand-mark__icon::after {
   position: absolute;
   inset: -35%;
   content: "";
   background: linear-gradient(120deg, transparent 35%, rgba(255, 255, 255, 0.64), transparent 65%);
   transform: translateX(-120%) rotate(10deg);
   animation: shimmer 5.8s ease-in-out infinite;
+}
+
+.brand-mark__icon img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.brand-mark__icon--login img {
+  transform: scale(1.08);
+}
+
+.brand-mark__icon--dashboard img {
+  transform: scale(1.12);
 }
 
 .brand-mark strong {
@@ -156,11 +175,11 @@ textarea {
   pointer-events: none;
   content: "";
   background:
-    radial-gradient(circle, rgba(12, 143, 136, 0.34) 0 1.2px, transparent 1.8px) 0 0 / 92px 92px,
-    radial-gradient(circle, rgba(55, 110, 137, 0.26) 0 1px, transparent 1.7px) 34px 26px / 116px 116px,
-    radial-gradient(circle, rgba(244, 184, 96, 0.24) 0 1.1px, transparent 1.8px) 68px 44px / 148px 148px,
+    radial-gradient(circle, rgba(12, 143, 136, 0.5) 0 1.6px, transparent 2.2px) 0 0 / 72px 72px,
+    radial-gradient(circle, rgba(55, 110, 137, 0.34) 0 1.25px, transparent 2px) 26px 22px / 96px 96px,
+    radial-gradient(circle, rgba(244, 184, 96, 0.32) 0 1.4px, transparent 2.2px) 52px 34px / 132px 132px,
     linear-gradient(120deg, rgba(255, 255, 255, 0.64), rgba(232, 249, 247, 0.24));
-  opacity: 0.72;
+  opacity: 0.88;
   animation: particle-drift 26s linear infinite;
 }
 
@@ -170,9 +189,12 @@ textarea {
   pointer-events: none;
   content: "";
   background:
-    radial-gradient(circle, rgba(12, 143, 136, 0.22) 0 1px, transparent 1.7px) 20px 16px / 130px 130px,
-    radial-gradient(circle, rgba(16, 35, 38, 0.18) 0 0.9px, transparent 1.6px) 72px 58px / 170px 170px;
-  opacity: 0.5;
+    radial-gradient(circle, rgba(12, 143, 136, 0.28) 0 1.1px, transparent 1.9px) 20px 16px / 120px 120px,
+    radial-gradient(circle, rgba(16, 35, 38, 0.16) 0 0.9px, transparent 1.7px) 72px 58px / 164px 164px,
+    radial-gradient(circle, rgba(143, 247, 238, 0.45) 0 4px, transparent 12px) 14% 18% / 240px 240px,
+    radial-gradient(circle, rgba(244, 184, 96, 0.28) 0 3px, transparent 11px) 78% 22% / 280px 280px;
+  filter: blur(0.2px);
+  opacity: 0.7;
   animation: particle-cross 34s linear infinite;
 }
 
@@ -182,6 +204,29 @@ textarea {
   display: grid;
   align-items: center;
   padding-block: 42px 64px;
+}
+
+.auth-shell::before {
+  position: absolute;
+  inset: 4% 8% auto auto;
+  width: min(260px, 26vw);
+  height: min(260px, 26vw);
+  pointer-events: none;
+  content: "";
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(143, 247, 238, 0.22) 0, rgba(143, 247, 238, 0.1) 24%, transparent 62%),
+    radial-gradient(circle at 32% 34%, rgba(255, 255, 255, 0.72) 0 2px, transparent 5px),
+    radial-gradient(circle at 66% 44%, rgba(244, 184, 96, 0.34) 0 3px, transparent 7px),
+    radial-gradient(circle at 42% 72%, rgba(12, 143, 136, 0.3) 0 2.4px, transparent 6px);
+  opacity: 0.82;
+  filter: blur(0.2px);
+  animation: particle-orbit 16s ease-in-out infinite;
+}
+
+.auth-shell > .row {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-copy h1,
@@ -978,6 +1023,50 @@ textarea.form-control {
 
 .workspace {
   min-width: 0;
+  position: relative;
+  isolation: isolate;
+}
+
+.workspace::before,
+.workspace::after {
+  position: absolute;
+  inset: 8px 0 auto;
+  pointer-events: none;
+  content: "";
+}
+
+.workspace::before {
+  top: 8px;
+  height: 220px;
+  background:
+    radial-gradient(circle, rgba(12, 143, 136, 0.26) 0 1.2px, transparent 2px) 0 0 / 84px 84px,
+    radial-gradient(circle, rgba(55, 110, 137, 0.2) 0 1px, transparent 1.8px) 30px 26px / 114px 114px,
+    radial-gradient(circle, rgba(244, 184, 96, 0.2) 0 1.2px, transparent 2px) 68px 34px / 148px 148px,
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 78%);
+  opacity: 0.72;
+  animation: particle-drift 30s linear infinite;
+}
+
+.workspace::after {
+  top: 14px;
+  right: 2%;
+  left: auto;
+  width: min(280px, 24vw);
+  height: min(280px, 24vw);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(143, 247, 238, 0.16) 0, rgba(143, 247, 238, 0.08) 28%, transparent 66%),
+    radial-gradient(circle at 22% 28%, rgba(255, 255, 255, 0.64) 0 2px, transparent 5px),
+    radial-gradient(circle at 72% 32%, rgba(244, 184, 96, 0.26) 0 3px, transparent 7px),
+    radial-gradient(circle at 40% 72%, rgba(12, 143, 136, 0.28) 0 2.6px, transparent 6px);
+  opacity: 0.68;
+  filter: blur(0.2px);
+  animation: particle-orbit 18s ease-in-out infinite reverse;
+}
+
+.workspace > * {
+  position: relative;
+  z-index: 1;
 }
 
 .workspace-header {
@@ -1662,17 +1751,17 @@ textarea.form-control {
 @keyframes particle-drift {
   0% {
     transform: translate3d(-1%, -1%, 0);
-    background-position: 0 0, 34px 26px, 68px 44px, 0 0;
+    background-position: 0 0, 26px 22px, 52px 34px, 0 0;
   }
 
   50% {
     transform: translate3d(1.4%, 0.8%, 0);
-    background-position: 46px 38px, 7px 84px, 104px 12px, 0 0;
+    background-position: 38px 34px, 10px 74px, 92px 16px, 0 0;
   }
 
   100% {
     transform: translate3d(-1%, -1%, 0);
-    background-position: 92px 92px, 150px 142px, 216px 192px, 0 0;
+    background-position: 72px 72px, 122px 118px, 184px 166px, 0 0;
   }
 }
 
@@ -1690,6 +1779,24 @@ textarea.form-control {
   100% {
     transform: translate3d(1%, 0.4%, 0) scale(1);
     background-position: 150px 146px, 242px 228px;
+  }
+}
+
+@keyframes particle-orbit {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.66;
+  }
+
+  35% {
+    transform: translate3d(-10px, 8px, 0) scale(1.04);
+    opacity: 0.88;
+  }
+
+  70% {
+    transform: translate3d(12px, -10px, 0) scale(0.98);
+    opacity: 0.74;
   }
 }
 
@@ -1791,7 +1898,7 @@ textarea.form-control {
   letter-spacing: 0.01em;
 }
 
-.brand-mark i,
+.brand-mark__icon,
 .service-icon,
 .assistant-metric-card i,
 .process-list i,
@@ -1801,7 +1908,7 @@ textarea.form-control {
   transition: transform 0.32s ease, box-shadow 0.32s ease;
 }
 
-.brand-mark:hover i,
+.brand-mark:hover .brand-mark__icon,
 .service-card:hover .service-icon,
 .assistant-metric-card:hover i,
 .process-list article:hover i,

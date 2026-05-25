@@ -17,6 +17,7 @@ const isAdmin = (user) => user.role === 'admin';
 const isPhysio = (user) => user.role === 'fisioterapeuta';
 const isPatient = (user) => user.role === 'paciente';
 const isClosedAppointmentStatus = (status) => ['completed', 'validated', 'cancelled', 'no_show'].includes(status);
+const APPOINTMENT_MUTABLE_FIELDS_FOR_PATIENT = new Set(['status']);
 const WORK_START_HOUR = 9;
 const WORK_END_HOUR = 18;
 const SLOT_MINUTES = 60;
@@ -24,7 +25,10 @@ const SLOT_MINUTES = 60;
 const toDateOnly = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const isWeekend = (date) => [0, 6].includes(date.getDay());
@@ -36,6 +40,9 @@ const cleanOptionalText = (value) => {
   const text = String(value).trim();
   return text || undefined;
 };
+
+const hasUnexpectedFields = (payload, allowedFields) =>
+  Object.keys(payload).some((field) => !allowedFields.has(field));
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
 
@@ -49,6 +56,63 @@ const normalizePreference = (value) => {
 const normalizeListText = (value) => {
   if (Array.isArray(value)) return value.filter(Boolean).join(', ');
   return cleanOptionalText(value);
+};
+
+const normalizePreferenceSafe = (value) => {
+  const text = String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (['manana', 'morning', 'primera hora', 'matinal'].some((keyword) => text.includes(keyword))) return 'morning';
+  if (['tarde', 'afternoon', 'ultima hora'].some((keyword) => text.includes(keyword))) return 'afternoon';
+  return 'any';
+};
+
+const cleanDateOnly = (value) => {
+  if (value === undefined || value === null) return undefined;
+  const text = String(value).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+  return text;
+};
+
+const ensureValidConsentStatusTransition = ({ currentStatus, nextStatus, isPatientActor }) => {
+  if (!nextStatus || nextStatus === currentStatus) return;
+
+  if (!Consent.CONSENT_STATUSES.includes(nextStatus)) {
+    const error = new Error('Estado de consentimiento invalido.');
+    error.status = 400;
+    throw error;
+  }
+
+  if (isPatientActor) {
+    const allowedTransitions = {
+      pending: new Set(['signed', 'revoked']),
+      signed: new Set(['revoked']),
+      revoked: new Set(),
+      expired: new Set()
+    };
+
+    if (!allowedTransitions[currentStatus]?.has(nextStatus)) {
+      const error = new Error('No puedes realizar esa accion sobre el consentimiento.');
+      error.status = 403;
+      throw error;
+    }
+    return;
+  }
+
+  const allowedTransitions = {
+    pending: new Set(['signed', 'revoked', 'expired']),
+    signed: new Set(['revoked', 'expired']),
+    revoked: new Set(['pending']),
+    expired: new Set(['pending', 'revoked'])
+  };
+
+  if (!allowedTransitions[currentStatus]?.has(nextStatus)) {
+    const error = new Error('Transicion de estado de consentimiento no permitida.');
+    error.status = 409;
+    throw error;
+  }
 };
 
 const determineIntakePriority = ({ urgency, pain, redFlags }) => {
@@ -134,10 +198,7 @@ const findIntakePhysiotherapist = async ({ physiotherapistId, physiotherapistEma
     if (physiotherapist) return physiotherapist;
   }
 
-  return User.findOne({
-    where: { role: 'fisioterapeuta', isActive: true },
-    order: [['name', 'ASC']]
-  });
+  return null;
 };
 
 const isSlotFreeForIntake = async ({ startsAt, endsAt, physiotherapistId }) => {
@@ -327,6 +388,12 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Nombre y email son obligatorios para la admision.' });
   }
 
+  if (!physiotherapistId && !physiotherapistEmail) {
+    return res
+      .status(400)
+      .json({ message: 'Debes indicar el fisioterapeuta (id o email profesional) para completar la admision.' });
+  }
+
   const intakePriority = determineIntakePriority({ urgency, pain, redFlags });
   const medicalNotes = buildIntakeNotes({
     source,
@@ -347,96 +414,113 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
     intakePriority
   });
 
-  const [patient, created] = await User.findOrCreate({
-    where: { email: normalizeEmail(email) },
-    defaults: {
+  const normalizedEmail = normalizeEmail(email);
+  let patient = await User.unscoped().findOne({
+    where: { email: normalizedEmail },
+    paranoid: false
+  });
+  let created = false;
+
+  if (!patient) {
+    patient = await User.create({
       name,
-      email,
+      email: normalizedEmail,
       phone,
       role: 'paciente',
       passwordHash: crypto.randomBytes(18).toString('base64url'),
       medicalNotes
-    }
-  });
-
-  if (!created) {
-    await patient.update({
+    });
+    created = true;
+  } else {
+    const restorePayload = {
       name: patient.name || name,
       phone: phone || patient.phone,
-      medicalNotes: [patient.medicalNotes, medicalNotes].filter(Boolean).join('\n\n')
-    });
+      medicalNotes: [patient.medicalNotes, medicalNotes].filter(Boolean).join('\n\n'),
+      isActive: true
+    };
+
+    if (patient.deletedAt) {
+      await patient.restore();
+    }
+
+    await patient.update(restorePayload);
   }
 
   const physiotherapist = await findIntakePhysiotherapist({ physiotherapistId, physiotherapistEmail });
+  if (!physiotherapist) {
+    return res.status(400).json({
+      message: 'Fisioterapeuta no encontrado o inactivo. Revisa el email o id seleccionado en el triaje.'
+    });
+  }
+
   let appointment = null;
   let appointmentCreated = false;
-  let appointmentMessage = 'Admision guardada. No se ha creado cita porque no hay fisioterapeuta activo.';
+  let appointmentMessage = '';
+  const existingIntakeAppointment = await Appointment.findOne({
+    where: {
+      patientId: patient.id,
+      physiotherapistId: physiotherapist.id,
+      status: { [Op.in]: ['pending', 'scheduled'] },
+      startsAt: { [Op.gt]: new Date() }
+    },
+    order: [['startsAt', 'ASC']]
+  });
 
-  if (physiotherapist) {
-    const existingIntakeAppointment = await Appointment.findOne({
-      where: {
-        patientId: patient.id,
-        status: { [Op.in]: ['pending', 'scheduled'] },
-        startsAt: { [Op.gt]: new Date() }
-      },
-      order: [['startsAt', 'ASC']]
-    });
+  if (existingIntakeAppointment) {
+    appointment = existingIntakeAppointment;
+    appointmentMessage = 'Admision guardada. El paciente ya tenia una cita activa con ese fisioterapeuta.';
+  } else {
+    const requestedSlot = resolveIntakeSlot({ startsAt, endsAt, preferredDate, preferredTime });
+      const preference = normalizePreferenceSafe(`${availability || ''} ${preferredTime || ''}`);
+    const slot =
+      requestedSlot && !Number.isNaN(requestedSlot.startsAt.getTime()) && !Number.isNaN(requestedSlot.endsAt.getTime())
+        ? requestedSlot
+        : await findFirstAvailableSlot({ physiotherapistId: physiotherapist.id, preference });
 
-    if (existingIntakeAppointment) {
-      appointment = existingIntakeAppointment;
-      appointmentMessage = 'Admision guardada. El paciente ya tiene una cita pendiente o programada.';
-    } else {
-      const requestedSlot = resolveIntakeSlot({ startsAt, endsAt, preferredDate, preferredTime });
-      const preference = normalizePreference(`${availability || ''} ${preferredTime || ''}`);
-      const slot =
-        requestedSlot && !Number.isNaN(requestedSlot.startsAt.getTime()) && !Number.isNaN(requestedSlot.endsAt.getTime())
-          ? requestedSlot
-          : await findFirstAvailableSlot({ physiotherapistId: physiotherapist.id, preference });
-
-      if (!slot) {
-        appointmentMessage = 'Admision guardada. No se encontro un hueco automatico disponible para crear cita.';
-      } else if (slot.startsAt >= slot.endsAt) {
-        appointmentMessage = 'Admision guardada. La fecha indicada para la cita no es valida.';
-      } else {
-        try {
-          appointment = await sequelize.transaction(async (transaction) => {
-            await ensureBookableSlot({
-              startsAt: slot.startsAt,
-              endsAt: slot.endsAt,
-              physiotherapistId: physiotherapist.id,
-              transaction
-            });
-            await ensureNoAppointmentOverlap({
-              startsAt: slot.startsAt,
-              endsAt: slot.endsAt,
-              physiotherapistId: physiotherapist.id,
-              transaction
-            });
-
-            return Appointment.create(
-              {
-                patientId: patient.id,
-                physiotherapistId: physiotherapist.id,
-                title:
-                  intakePriority === 'revision_prioritaria'
-                    ? 'Solicitud Typebot - Revision prioritaria'
-                    : 'Solicitud Typebot - Valoracion inicial',
-                treatmentType: 'Valoracion inicial',
-                startsAt: slot.startsAt,
-                endsAt: slot.endsAt,
-                status: 'pending',
-                notes: medicalNotes
-              },
-              { transaction }
-            );
-          });
-          appointmentCreated = true;
-          appointmentMessage = 'Cita pendiente creada desde la admision Typebot.';
-        } catch (error) {
-          appointmentMessage = `Admision guardada. No se pudo crear la cita automaticamente: ${error.message}`;
-        }
-      }
+    if (!slot) {
+      return res.status(409).json({
+        message:
+          'No hay huecos disponibles para ese fisioterapeuta en los proximos 21 dias. La admision se ha guardado, pero no se pudo generar cita.'
+      });
     }
+
+    if (slot.startsAt >= slot.endsAt) {
+      return res.status(400).json({ message: 'La fecha indicada para la cita no es valida.' });
+    }
+
+    appointment = await sequelize.transaction(async (transaction) => {
+      await ensureBookableSlot({
+        startsAt: slot.startsAt,
+        endsAt: slot.endsAt,
+        physiotherapistId: physiotherapist.id,
+        transaction
+      });
+      await ensureNoAppointmentOverlap({
+        startsAt: slot.startsAt,
+        endsAt: slot.endsAt,
+        physiotherapistId: physiotherapist.id,
+        transaction
+      });
+
+      return Appointment.create(
+        {
+          patientId: patient.id,
+          physiotherapistId: physiotherapist.id,
+          title:
+            intakePriority === 'revision_prioritaria'
+              ? 'Solicitud Typebot - Revision prioritaria'
+              : 'Solicitud Typebot - Valoracion inicial',
+          treatmentType: 'Valoracion inicial',
+          startsAt: slot.startsAt,
+          endsAt: slot.endsAt,
+          status: 'pending',
+          notes: medicalNotes
+        },
+        { transaction }
+      );
+    });
+    appointmentCreated = true;
+    appointmentMessage = 'Cita pendiente creada desde la admision Typebot.';
   }
 
   return res.status(created ? 201 : 200).json({
@@ -504,14 +588,14 @@ const createUser = asyncHandler(async (req, res) => {
   }
 
   const user = await User.create({
-    name,
-    email,
+    name: String(name).trim(),
+    email: normalizeEmail(email),
     passwordHash: password,
     role,
-    phone,
-    dni,
+    phone: cleanOptionalText(phone),
+    dni: cleanOptionalText(dni),
     birthDate,
-    medicalNotes
+    medicalNotes: cleanOptionalText(medicalNotes)
   });
 
   return res.status(201).json({ user });
@@ -542,6 +626,36 @@ const updateUser = asyncHandler(async (req, res) => {
   delete payload.id;
   delete payload.lastLoginAt;
 
+  if (payload.email) {
+    payload.email = normalizeEmail(payload.email);
+  }
+
+  if (payload.name) {
+    payload.name = String(payload.name).trim();
+  }
+
+  if (payload.phone !== undefined) {
+    payload.phone = cleanOptionalText(payload.phone);
+  }
+
+  if (payload.dni !== undefined) {
+    payload.dni = cleanOptionalText(payload.dni);
+  }
+
+  if (payload.medicalNotes !== undefined) {
+    payload.medicalNotes = cleanOptionalText(payload.medicalNotes);
+  }
+
+  if (req.user.id === user.id) {
+    if (payload.role && payload.role !== user.role) {
+      return res.status(400).json({ message: 'No puedes cambiar tu propio rol desde esta cuenta.' });
+    }
+
+    if (payload.isActive === false) {
+      return res.status(400).json({ message: 'No puedes desactivar tu propio usuario.' });
+    }
+  }
+
   await user.update(payload);
   return res.status(200).json({ user });
 });
@@ -556,6 +670,20 @@ const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.params.id);
   if (!user) {
     return res.status(404).json({ message: 'Usuario no encontrado.' });
+  }
+
+  const futureAppointments = await Appointment.count({
+    where: {
+      status: { [Op.in]: ['pending', 'scheduled'] },
+      startsAt: { [Op.gt]: new Date() },
+      [Op.or]: [{ patientId: user.id }, { physiotherapistId: user.id }]
+    }
+  });
+
+  if (futureAppointments > 0) {
+    return res.status(409).json({
+      message: 'No puedes desactivar este usuario mientras tenga citas futuras pendientes o programadas.'
+    });
   }
 
   await user.update({ isActive: false });
@@ -686,9 +814,14 @@ const listScheduleBlocks = asyncHandler(async (req, res) => {
 const createScheduleBlock = asyncHandler(async (req, res) => {
   const { physiotherapistId, date, reason } = req.body;
   const resolvedPhysioId = isPhysio(req.user) ? req.user.id : physiotherapistId || null;
+  const normalizedDate = cleanDateOnly(date);
 
   if (!date) {
     return res.status(400).json({ message: 'La fecha es obligatoria.' });
+  }
+
+  if (!normalizedDate) {
+    return res.status(400).json({ message: 'La fecha debe tener formato YYYY-MM-DD.' });
   }
 
   if (resolvedPhysioId) {
@@ -701,10 +834,24 @@ const createScheduleBlock = asyncHandler(async (req, res) => {
     }
   }
 
+  const existingBlock = await ScheduleBlock.findOne({
+    where: {
+      date: normalizedDate,
+      [Op.or]:
+        resolvedPhysioId === null
+          ? [{ physiotherapistId: null }]
+          : [{ physiotherapistId: resolvedPhysioId }, { physiotherapistId: null }]
+    }
+  });
+
+  if (existingBlock) {
+    return res.status(409).json({ message: 'Ya existe un bloqueo para esa fecha y fisioterapeuta.' });
+  }
+
   const block = await ScheduleBlock.create({
     physiotherapistId: resolvedPhysioId,
     createdById: req.user.id,
-    date,
+    date: normalizedDate,
     reason: reason || 'Dia no laborable'
   });
 
@@ -806,9 +953,24 @@ const updateAppointment = asyncHandler(async (req, res) => {
 
   const payload = { ...req.body };
   if (isPatient(req.user)) {
+    if (hasUnexpectedFields(payload, APPOINTMENT_MUTABLE_FIELDS_FOR_PATIENT)) {
+      return res.status(403).json({ message: 'Los pacientes no pueden editar los detalles de una cita existente.' });
+    }
+
     delete payload.patientId;
     delete payload.physiotherapistId;
-    delete payload.status;
+
+    if (payload.status !== 'cancelled') {
+      return res.status(403).json({ message: 'Los pacientes solo pueden cancelar sus propias citas.' });
+    }
+
+    if (!['pending', 'scheduled'].includes(appointment.status)) {
+      return res.status(409).json({ message: 'Solo se pueden cancelar citas pendientes o programadas.' });
+    }
+
+    if (new Date(appointment.startsAt) <= new Date()) {
+      return res.status(409).json({ message: 'No se puede cancelar una cita que ya ha comenzado.' });
+    }
   }
 
   if (isPhysio(req.user)) {
@@ -1021,6 +1183,7 @@ const getConsent = asyncHandler(async (req, res) => {
 
 const createConsent = asyncHandler(async (req, res) => {
   const { patientId, type, title, body, expiresAt } = req.body;
+  const normalizedExpiresAt = cleanOptionalText(expiresAt);
 
   if (!patientId || !title || !body) {
     return res.status(400).json({ message: 'Paciente, titulo y cuerpo son obligatorios.' });
@@ -1041,7 +1204,7 @@ const createConsent = asyncHandler(async (req, res) => {
     type: type || 'treatment',
     title: String(title).trim(),
     body: String(body).trim(),
-    expiresAt: cleanOptionalText(expiresAt)
+    expiresAt: normalizedExpiresAt
   });
 
   return res.status(201).json({ consent });
@@ -1061,6 +1224,13 @@ const updateConsent = asyncHandler(async (req, res) => {
   const payload = { ...req.body };
   delete payload.patientId;
   delete payload.issuedById;
+  if (payload.status !== undefined) {
+    ensureValidConsentStatusTransition({
+      currentStatus: consent.status,
+      nextStatus: payload.status,
+      isPatientActor: isPatient(req.user)
+    });
+  }
 
   if (isPatient(req.user)) {
     delete payload.title;
@@ -1076,10 +1246,22 @@ const updateConsent = asyncHandler(async (req, res) => {
         .update(`${consent.id}:${req.user.id}:${payload.signatureName}:${payload.signedAt.toISOString()}`)
         .digest('hex');
     }
+
+    if (payload.status === 'revoked') {
+      delete payload.signatureName;
+    }
   }
 
   if (payload.status === 'revoked') {
     payload.revokedAt = new Date();
+  }
+
+  if (payload.status === 'pending') {
+    payload.revokedAt = null;
+  }
+
+  if (payload.status === 'expired') {
+    payload.revokedAt = null;
   }
 
   await consent.update(payload);

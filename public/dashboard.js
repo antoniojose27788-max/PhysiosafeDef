@@ -39,6 +39,15 @@ const setFeedback = (message, type = '') => {
   feedback.className = `form-feedback ${type}`.trim();
 };
 
+const parseResponseBody = (text) => {
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {};
+  }
+};
+
 const request = async (path, options = {}) => {
   let response;
 
@@ -66,7 +75,7 @@ const request = async (path, options = {}) => {
   }
 
   const text = response.status === 204 || response.status === 304 ? '' : await response.text();
-  const data = text ? JSON.parse(text) : {};
+  const data = parseResponseBody(text);
 
   if (!response.ok) {
     throw new Error(data.message || 'No se pudo completar la operacion.');
@@ -138,6 +147,22 @@ const formatDateOnlyLocal = (value) => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const toDateTimeLocalInputValue = (value) => {
+  if (!value) return '';
+  const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const offsetMinutes = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offsetMinutes * 60000);
+  return localDate.toISOString().slice(0, 16);
+};
+
+const toIsoUtcString = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
 };
 
 const rebuildCalendarIndexes = () => {
@@ -308,6 +333,15 @@ const loadUsers = async () => {
 
 const readAppointmentForm = (form) => {
   const payload = readForm(form);
+  const startsAtUtc = toIsoUtcString(payload.startsAt);
+  const endsAtUtc = toIsoUtcString(payload.endsAt);
+
+  if (!startsAtUtc || !endsAtUtc) {
+    throw new Error('Inicio y fin de cita invalidos.');
+  }
+
+  payload.startsAt = startsAtUtc;
+  payload.endsAt = endsAtUtc;
 
   if (state.user?.role === 'paciente') {
     payload.patientId = state.user.id;
@@ -787,8 +821,8 @@ document.addEventListener('click', async (event) => {
   try {
     if (slotAction) {
       const form = document.querySelector('#appointmentForm');
-      form.elements.startsAt.value = slotAction.dataset.slotStart.slice(0, 16);
-      form.elements.endsAt.value = slotAction.dataset.slotEnd.slice(0, 16);
+      form.elements.startsAt.value = toDateTimeLocalInputValue(slotAction.dataset.slotStart);
+      form.elements.endsAt.value = toDateTimeLocalInputValue(slotAction.dataset.slotEnd);
       setFeedback('Hueco seleccionado. Revisa los datos y confirma la cita.', 'success');
       return;
     }
@@ -958,7 +992,7 @@ const assistantKnowledge = [
     keywords: ['typebot', 'bot', 'asistente', 'webhook', 'admision', 'plantilla', 'triaje'],
     section: 'assistant',
     answer:
-      'En Asistente tienes el circuito de admision completo. El Typebot recoge identidad, contacto, motivo, zona, evolucion, dolor, urgencia, alertas clinicas, tratamiento previo y disponibilidad; envia el webhook protegido y PhysioSafe crea o actualiza el paciente. Si encuentra hueco real, deja una cita pendiente.'
+      'En Asistente tienes el circuito de admision completo. El Typebot recoge identidad, contacto, motivo, zona, evolucion, dolor, urgencia, alertas clinicas, tratamiento previo, disponibilidad y fisioterapeuta elegido; envia el webhook protegido y PhysioSafe crea o actualiza el paciente con una cita pendiente.'
   },
   {
     keywords: ['probar asistente', 'editar flujo', 'builder', 'viewer'],
@@ -970,7 +1004,7 @@ const assistantKnowledge = [
     keywords: ['admisiones', 'primera visita', 'motivo consulta', 'dolor'],
     section: 'assistant',
     answer:
-      'El flujo de admision recoge identidad, motivo, dolor, zona afectada, evolucion, urgencia, alertas, tratamiento previo y disponibilidad. Con esos datos el sistema prepara la ficha, calcula prioridad inicial y puede crear una cita pendiente para que el equipo la valide.'
+      'El flujo de admision recoge identidad, motivo, dolor, zona afectada, evolucion, urgencia, alertas, tratamiento previo, disponibilidad y fisioterapeuta elegido. Con esos datos el sistema prepara la ficha, calcula prioridad inicial y genera una cita pendiente para revision del equipo.'
   },
   {
     keywords: ['urgente', 'urgencia', 'alerta', 'bandera roja', 'hormigueo', 'traumatismo', 'fiebre', 'incontinencia'],

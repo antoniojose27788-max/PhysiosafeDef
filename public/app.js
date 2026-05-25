@@ -15,6 +15,15 @@ const setFeedback = (message, type = '') => {
 
 const readForm = (form) => Object.fromEntries(new FormData(form).entries());
 
+const parseResponseBody = (text) => {
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {};
+  }
+};
+
 const request = async (path, options = {}) => {
   let response;
 
@@ -34,7 +43,7 @@ const request = async (path, options = {}) => {
   }
 
   const text = response.status === 204 || response.status === 304 ? '' : await response.text();
-  const data = text ? JSON.parse(text) : {};
+  const data = parseResponseBody(text);
 
   if (!response.ok) {
     throw new Error(data.message || 'No se pudo completar la operacion.');
@@ -133,6 +142,28 @@ if (headerMenuToggle && headerMobileMenu) {
 
   headerMobileMenu.querySelectorAll('a').forEach((link) => {
     link.addEventListener('click', () => setMenuOpen(false));
+  });
+
+  document.addEventListener('click', (event) => {
+    const isOpen = !headerMobileMenu.hidden;
+    if (!isOpen) return;
+    const clickedInsideMenu = headerMobileMenu.contains(event.target);
+    const clickedToggle = headerMenuToggle.contains(event.target);
+    if (!clickedInsideMenu && !clickedToggle) {
+      setMenuOpen(false);
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !headerMobileMenu.hidden) {
+      setMenuOpen(false);
+    }
+  });
+
+  window.addEventListener('scroll', () => {
+    if (!headerMobileMenu.hidden) {
+      setMenuOpen(false);
+    }
   });
 
   window.addEventListener('resize', () => {

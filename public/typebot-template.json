@@ -336,7 +336,19 @@
           "options": {
             "variableId": "var-insurance"
           },
-          "outgoingEdgeId": "edge-insurance-availability"
+          "outgoingEdgeId": "edge-insurance-physio-email"
+        },
+        {
+          "id": "block-physiotherapist-email",
+          "type": "email input",
+          "options": {
+            "labels": {
+              "placeholder": "Email profesional del fisioterapeuta elegido",
+              "button": "Continuar"
+            },
+            "variableId": "var-physiotherapist-email"
+          },
+          "outgoingEdgeId": "edge-physio-email-availability"
         },
         {
           "id": "block-availability",
@@ -572,9 +584,19 @@
       }
     },
     {
-      "id": "edge-insurance-availability",
+      "id": "edge-insurance-physio-email",
       "from": {
         "blockId": "block-insurance"
+      },
+      "to": {
+        "groupId": "group-agenda",
+        "blockId": "block-physiotherapist-email"
+      }
+    },
+    {
+      "id": "edge-physio-email-availability",
+      "from": {
+        "blockId": "block-physiotherapist-email"
       },
       "to": {
         "groupId": "group-agenda",
@@ -680,6 +702,10 @@
       "name": "insurance"
     },
     {
+      "id": "var-physiotherapist-email",
+      "name": "physiotherapistEmail"
+    },
+    {
       "id": "var-availability",
       "name": "availability"
     },
@@ -711,6 +737,7 @@
       "redFlags": "{{redFlags}}",
       "previousTreatment": "{{previousTreatment}}",
       "insurance": "{{insurance}}",
+      "physiotherapistEmail": "{{physiotherapistEmail}}",
       "availability": "{{availability}}",
       "preferredDate": "{{preferredDate}}",
       "preferredTime": "{{preferredTime}}",

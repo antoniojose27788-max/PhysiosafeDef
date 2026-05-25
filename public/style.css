@@ -249,6 +249,10 @@ textarea {
   display: none;
 }
 
+.header-mobile-menu[hidden] {
+  display: none !important;
+}
+
 .header-menu-toggle {
   position: relative;
   width: 54px;
@@ -301,21 +305,25 @@ textarea {
 .header-mobile-menu {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 1200;
   padding: 92px 18px 18px;
-  background: rgba(9, 32, 37, 0.34);
-  backdrop-filter: blur(12px);
+  background: rgba(9, 32, 37, 0.58);
+  backdrop-filter: blur(16px);
 }
 
 .header-mobile-panel {
   display: grid;
   gap: 16px;
+  width: min(100%, 420px);
+  min-height: calc(100vh - 122px);
+  margin-left: auto;
+  align-content: start;
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 18px;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(232, 249, 247, 0.88)),
-    rgba(255, 255, 255, 0.9);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.985), rgba(244, 252, 251, 0.965)),
+    rgba(255, 255, 255, 0.98);
   box-shadow: 0 28px 84px rgba(9, 43, 49, 0.18);
 }
 
@@ -338,7 +346,7 @@ textarea {
   padding: 0 16px;
   border: 1px solid rgba(12, 143, 136, 0.12);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.74);
+  background: rgba(255, 255, 255, 0.96);
   color: var(--ink);
   font-weight: 850;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 12px 24px rgba(9, 43, 49, 0.06);
@@ -2039,6 +2047,12 @@ textarea.form-control {
   gap: 12px;
 }
 
+body.menu-open .floating-assistant {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px) scale(0.96);
+}
+
 .assistant-toggle {
   position: relative;
   isolation: isolate;
@@ -2982,6 +2996,47 @@ textarea.form-control {
     display: block;
   }
 
+  .header-shell {
+    overflow: visible;
+  }
+
+  .header-strip {
+    margin-top: 10px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .header-strip article {
+    min-height: 0;
+    padding: 12px 14px;
+  }
+
+  .header-strip small {
+    font-size: 0.68rem;
+  }
+
+  .header-strip strong {
+    margin-top: 6px;
+    font-size: 0.9rem;
+    line-height: 1.38;
+  }
+
+  .header-mobile-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    padding: 84px 14px 14px;
+    background: rgba(9, 32, 37, 0.4);
+    backdrop-filter: blur(10px);
+  }
+
+  .header-mobile-panel {
+    max-height: calc(100vh - 108px);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    min-height: calc(100vh - 108px);
+  }
+
   .header-links,
   .header-actions,
   .brand-nav > .header-pulse {
@@ -3034,6 +3089,37 @@ textarea.form-control {
     height: 260px;
   }
 
+  .service-card {
+    display: flex;
+    flex-direction: column;
+    grid-template-rows: none;
+    min-height: 0;
+  }
+
+  .service-card img {
+    width: 100%;
+    height: 220px;
+    flex: 0 0 220px;
+    object-fit: cover;
+  }
+
+  .service-card section {
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+  }
+
+  .service-card h3 {
+    font-size: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .service-card p {
+    color: #2a4a49;
+    font-size: 1rem;
+    line-height: 1.58;
+  }
+
   .hero-media-overlay {
     grid-template-columns: 1fr;
   }
@@ -3042,12 +3128,35 @@ textarea.form-control {
     width: 100%;
   }
 
+  .trust-strip article,
+  .ops-ribbon article,
+  .identity-ribbon article {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .trust-strip article {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .trust-strip span,
+  .ops-ribbon strong,
+  .identity-ribbon strong {
+    line-height: 1.35;
+    text-wrap: balance;
+  }
+
   .header-shell {
     padding: 12px;
   }
 
   .brand-mark {
     width: calc(100% - 70px);
+  }
+
+  .header-strip {
+    display: none;
   }
 
   .brand-copy {
@@ -3102,7 +3211,7 @@ textarea.form-control {
 
   .floating-assistant {
     right: 14px;
-    bottom: 14px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 104px);
   }
 
   .assistant-toggle span {
@@ -3110,9 +3219,16 @@ textarea.form-control {
   }
 
   .assistant-toggle {
-    width: 56px;
+    width: 54px;
+    min-height: 54px;
     padding: 0;
     justify-content: center;
+  }
+
+  .assistant-chat {
+    width: min(92vw, 360px);
+    right: 0;
+    left: auto;
   }
 }
 

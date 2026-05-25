@@ -6,6 +6,10 @@ const feedback = document.querySelector('#authFeedback');
 const modeButtons = document.querySelectorAll('[data-auth-mode]');
 const headerMenuToggle = document.querySelector('.header-menu-toggle');
 const headerMobileMenu = document.querySelector('#mobileMenu');
+const session = window.physioSafeSession || {
+  getToken: () => null,
+  persistSession: () => {}
+};
 let registerRole = 'paciente';
 
 const setFeedback = (message, type = '') => {
@@ -74,8 +78,7 @@ const loadSetupStatus = async () => {
 };
 
 const persistSession = ({ token, user }) => {
-  localStorage.setItem('physiosafe_token', token);
-  localStorage.setItem('physiosafe_user', JSON.stringify(user));
+  session.persistSession({ token, user });
   window.location.href = '/dashboard.html';
 };
 
@@ -124,12 +127,13 @@ registerForm.addEventListener('submit', async (event) => {
   }
 });
 
-if (localStorage.getItem('physiosafe_token')) {
+if (session.getToken()) {
   document.querySelector('.ghost-link').textContent = 'Ir al dashboard';
   document.querySelector('.ghost-link').setAttribute('href', '/dashboard.html');
 }
 
 if (headerMenuToggle && headerMobileMenu) {
+  const headerMobileClose = headerMobileMenu.querySelector('.header-mobile-close');
   const setMenuOpen = (open) => {
     headerMobileMenu.hidden = !open;
     headerMenuToggle.setAttribute('aria-expanded', String(open));
@@ -138,6 +142,10 @@ if (headerMenuToggle && headerMobileMenu) {
 
   headerMenuToggle.addEventListener('click', () => {
     setMenuOpen(headerMobileMenu.hidden);
+  });
+
+  headerMobileClose?.addEventListener('click', () => {
+    setMenuOpen(false);
   });
 
   headerMobileMenu.querySelectorAll('a').forEach((link) => {
@@ -202,7 +210,15 @@ const initMotionSystem = () => {
     { threshold: 0.16, rootMargin: '0px 0px -8% 0px' }
   );
 
-  document.querySelectorAll('[data-animate]').forEach((element) => observer.observe(element));
+  document.querySelectorAll('[data-animate]').forEach((element) => {
+    const rect = element.getBoundingClientRect();
+    if (rect.top < window.innerHeight * 1.08 && rect.bottom > 0) {
+      element.classList.add('is-visible');
+      return;
+    }
+
+    observer.observe(element);
+  });
 
   const attachTilt = (element) => {
     element.classList.add('magnetic-card');

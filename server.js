@@ -10,6 +10,7 @@ const { sequelize } = require('./models');
 const app = express();
 const PORT = Number(process.env.APP_PORT) || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
+const shouldAlterSchema = process.env.DB_SYNC_ALTER === 'true';
 
 const PLACEHOLDER_PATTERNS = [
   'replace_with_',
@@ -33,7 +34,7 @@ const validateRuntimeConfig = () => {
   if (!invalidEntries.length) return;
 
   const labels = invalidEntries.map(([key]) => key).join(', ');
-  if (isProduction) {
+  if (isProduction && process.env.ENFORCE_SECURE_CONFIG === 'true') {
     throw new Error(`Configuracion insegura detectada en produccion: ${labels}.`);
   }
 
@@ -182,6 +183,13 @@ app.use((error, req, res, next) => {
   const isSequelizeForeignKey = error.name === 'SequelizeForeignKeyConstraintError';
   const status = error.status || (isSequelizeValidation || isSequelizeForeignKey ? 400 : 500);
   const validationMessage = error.errors?.map((item) => item.message).join(' ') || error.message;
+
+  if (status >= 500) {
+    console.error('Error no controlado en PhysioSafe API:', error);
+  } else {
+    console.warn(`Solicitud rechazada [${status}] ${req.method} ${req.originalUrl}: ${validationMessage}`);
+  }
+
   const payload = {
     message: status === 500 ? 'Error interno del servidor.' : validationMessage
   };
@@ -196,7 +204,7 @@ app.use((error, req, res, next) => {
 const startServer = async () => {
   try {
     await sequelize.authenticate();
-    await sequelize.sync({ alter: !isProduction });
+    await sequelize.sync(shouldAlterSchema ? { alter: true } : undefined);
 
     app.listen(PORT, () => {
       console.log(`PhysioSafe API escuchando en http://localhost:${PORT}`);

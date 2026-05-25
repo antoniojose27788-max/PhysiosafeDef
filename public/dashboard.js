@@ -1,6 +1,12 @@
 const API_BASE = '/api';
-const token = localStorage.getItem('physiosafe_token');
-const storedUser = JSON.parse(localStorage.getItem('physiosafe_user') || 'null');
+const session = window.physioSafeSession || {
+  getToken: () => null,
+  getUser: () => null,
+  setUser: () => {},
+  clear: () => {}
+};
+const token = session.getToken();
+const storedUser = session.getUser();
 
 const state = {
   user: storedUser,
@@ -48,6 +54,16 @@ const parseResponseBody = (text) => {
   }
 };
 
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
+const escapeAttr = (value) => escapeHtml(value);
+
 const request = async (path, options = {}) => {
   let response;
 
@@ -68,8 +84,7 @@ const request = async (path, options = {}) => {
   }
 
   if (response.status === 401) {
-    localStorage.removeItem('physiosafe_token');
-    localStorage.removeItem('physiosafe_user');
+    session.clear();
     window.location.href = '/';
     return {};
   }
@@ -206,13 +221,13 @@ const statusLabel = (status) =>
   })[status] || status;
 
 const renderEmpty = (target, text) => {
-  target.innerHTML = `<article class="record-card"><h3>${text}</h3><small>No hay datos disponibles.</small></article>`;
+  target.innerHTML = `<article class="record-card"><h3>${escapeHtml(text)}</h3><small>No hay datos disponibles.</small></article>`;
 };
 
 const fillSelect = (selector, items, placeholder) => {
   document.querySelectorAll(selector).forEach((select) => {
-    select.innerHTML = `<option value="">${placeholder}</option>${items
-      .map((item) => `<option value="${item.id}">${item.name} - ${item.email}</option>`)
+    select.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>${items
+      .map((item) => `<option value="${escapeAttr(item.id)}">${escapeHtml(item.name)} - ${escapeHtml(item.email)}</option>`)
       .join('')}`;
   });
 };
@@ -222,7 +237,9 @@ const fillScheduleBlockPhysioSelect = () => {
     const allOption = state.user?.role === 'admin' ? '<option value="">Toda la clinica</option>' : '';
     select.innerHTML =
       allOption +
-      state.physiotherapists.map((item) => `<option value="${item.id}">${item.name} - ${item.email}</option>`).join('');
+      state.physiotherapists
+        .map((item) => `<option value="${escapeAttr(item.id)}">${escapeHtml(item.name)} - ${escapeHtml(item.email)}</option>`)
+        .join('');
 
     if (state.user?.role === 'fisioterapeuta') {
       select.value = state.user.id;
@@ -290,7 +307,7 @@ const configureAppointmentFormForRole = () => {
 const loadMe = async () => {
   const { user } = await request('/auth/me');
   state.user = user;
-  localStorage.setItem('physiosafe_user', JSON.stringify(user));
+  session.setUser(user);
   document.querySelector('#currentUser').textContent = `${user.name} - ${roleLabel(user.role)}`;
   document.querySelectorAll('.admin-only').forEach((item) => item.classList.toggle('d-none', user.role !== 'admin'));
   document.querySelectorAll('.admin-clinical-only').forEach((item) => {
@@ -403,7 +420,7 @@ const renderAvailability = (days) => {
             <article class="availability-day ${day.status}">
               <header>
                 <strong>${new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: '2-digit', month: 'short' }).format(parseDateOnly(day.date))}</strong>
-                <span>${day.status === 'available' ? `${day.slots.length} huecos` : day.reason}</span>
+                <span>${escapeHtml(day.status === 'available' ? `${day.slots.length} huecos` : day.reason || '')}</span>
               </header>
               ${
                 day.slots.length
@@ -411,7 +428,7 @@ const renderAvailability = (days) => {
                       .slice(0, 6)
                       .map(
                         (slot) =>
-                          `<button class="mini-action" type="button" data-slot-start="${slot.startsAt}" data-slot-end="${slot.endsAt}">${slot.label}</button>`
+                          `<button class="mini-action" type="button" data-slot-start="${escapeAttr(slot.startsAt)}" data-slot-end="${escapeAttr(slot.endsAt)}">${escapeHtml(slot.label)}</button>`
                       )
                       .join('')}</section>`
                   : ''
@@ -443,10 +460,10 @@ const renderScheduleBlocks = () => {
             <h3>${new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' }).format(parseDateOnly(block.date))}</h3>
             <span class="status-badge pending">No laborable</span>
           </header>
-          <small>${block.physiotherapist?.name || 'Toda la clinica'}</small>
-          <p>${block.reason}</p>
+          <small>${escapeHtml(block.physiotherapist?.name || 'Toda la clinica')}</small>
+          <p>${escapeHtml(block.reason)}</p>
           <section class="record-actions">
-            <button class="mini-action" type="button" data-schedule-block-delete="${block.id}">Quitar bloqueo</button>
+            <button class="mini-action" type="button" data-schedule-block-delete="${escapeAttr(block.id)}">Quitar bloqueo</button>
           </section>
         </article>
       `
@@ -478,13 +495,13 @@ const loadStats = async () => {
   document.querySelector('#statsGrid').innerHTML = cards
     .map(
       ([label, value, icon]) =>
-        `<article class="stat-card"><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>${value}</strong><span>${label}</span></article>`
+        `<article class="stat-card"><i class="fa-solid ${escapeAttr(icon)}" aria-hidden="true"></i><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></article>`
     )
     .join('');
 
   document.querySelector('#statusBoard').innerHTML =
     stats.appointmentsByStatus
-      .map((item) => `<article class="status-pill"><strong>${item.count}</strong><span>${statusLabel(item.status)}</span></article>`)
+      .map((item) => `<article class="status-pill"><strong>${escapeHtml(item.count)}</strong><span>${escapeHtml(statusLabel(item.status))}</span></article>`)
       .join('') || '<article class="status-pill"><strong>0</strong><span>Sin citas</span></article>';
 };
 
@@ -492,6 +509,7 @@ const renderAppointments = (appointments) => {
   const target = document.querySelector('#appointmentsList');
   if (!appointments.length) {
     renderEmpty(target, 'Sin citas');
+    renderAssistantIntakes([]);
     return;
   }
 
@@ -500,18 +518,54 @@ const renderAppointments = (appointments) => {
       (appointment) => `
         <article class="record-card">
           <header>
-            <h3>${appointment.title}</h3>
-            <span class="status-badge ${appointment.status}">${statusLabel(appointment.status)}</span>
+            <h3>${escapeHtml(appointment.title)}</h3>
+            <span class="status-badge ${escapeAttr(appointment.status)}">${escapeHtml(statusLabel(appointment.status))}</span>
           </header>
           <small>${formatDate(appointment.startsAt)} - ${formatDate(appointment.endsAt)}</small>
-          <small>Paciente: ${appointment.patient?.name || 'Sin paciente'}</small>
-          <small>Fisio: ${appointment.physiotherapist?.name || 'Sin fisio'}</small>
-          <p>${appointment.notes || appointment.treatmentType || ''}</p>
+          <small>Paciente: ${escapeHtml(appointment.patient?.name || 'Sin paciente')}</small>
+          <small>Fisio: ${escapeHtml(appointment.physiotherapist?.name || 'Sin fisio')}</small>
+          <p>${escapeHtml(appointment.notes || appointment.treatmentType || '')}</p>
           <section class="record-actions">
-            ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${appointment.id}:completed">Completar</button>` : ''}
-            ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${appointment.id}:validated">Validar</button>` : ''}
-            ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${appointment.id}:cancelled">Cancelar</button>` : ''}
+            ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:completed">Completar</button>` : ''}
+            ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:validated">Validar</button>` : ''}
+            ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:cancelled">Cancelar</button>` : ''}
           </section>
+        </article>
+      `
+    )
+    .join('');
+
+  renderAssistantIntakes(appointments);
+};
+
+const renderAssistantIntakes = (appointments) => {
+  const target = document.querySelector('#assistantIntakeList');
+  if (!target) return;
+
+  const intakes = appointments.filter((appointment) => {
+    const title = String(appointment.title || '').toLowerCase();
+    const notes = String(appointment.notes || '').toLowerCase();
+    return title.includes('solicitud typebot') || notes.includes('origen: typebot');
+  });
+
+  if (!intakes.length) {
+    renderEmpty(target, 'Sin admisiones Typebot');
+    return;
+  }
+
+  target.innerHTML = intakes
+    .slice(0, 6)
+    .map(
+      (appointment) => `
+        <article class="record-card">
+          <header>
+            <h3>${escapeHtml(appointment.title)}</h3>
+            <span class="status-badge ${escapeAttr(appointment.status)}">${escapeHtml(statusLabel(appointment.status))}</span>
+          </header>
+          <small>Paciente: ${escapeHtml(appointment.patient?.name || 'Sin paciente')}</small>
+          <small>Fisio: ${escapeHtml(appointment.physiotherapist?.name || 'Sin fisioterapeuta')}</small>
+          <small>Fecha: ${escapeHtml(formatDate(appointment.startsAt))}</small>
+          <p>${escapeHtml((appointment.notes || '').split('\n').slice(0, 4).join(' | '))}</p>
         </article>
       `
     )
@@ -574,22 +628,22 @@ const renderCalendar = () => {
       <article class="calendar-day ${muted} ${current} ${blocked}">
         <header>
           <strong>${date.getDate()}</strong>
-          ${appointments.length ? `<span>${appointments.length}</span>` : ''}
+          ${appointments.length ? `<span>${escapeHtml(appointments.length)}</span>` : ''}
         </header>
         <section class="calendar-events">
           ${appointments
             .slice(0, 3)
             .map(
               (appointment) => `
-                <article class="calendar-event ${appointment.status}">
+                <article class="calendar-event ${escapeAttr(appointment.status)}">
                   <strong>${new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' }).format(new Date(appointment.startsAt))}</strong>
-                  <span>${appointment.title}</span>
+                  <span>${escapeHtml(appointment.title)}</span>
                 </article>
               `
             )
             .join('')}
-          ${appointments.length > 3 ? `<small>+${appointments.length - 3} mas</small>` : ''}
-          ${scheduleBlock ? `<small class="calendar-block-label">${scheduleBlock.reason}</small>` : ''}
+          ${appointments.length > 3 ? `<small>+${escapeHtml(appointments.length - 3)} mas</small>` : ''}
+          ${scheduleBlock ? `<small class="calendar-block-label">${escapeHtml(scheduleBlock.reason)}</small>` : ''}
         </section>
       </article>
     `);
@@ -610,12 +664,12 @@ const renderReports = (reports) => {
       (report) => `
         <article class="record-card">
           <header>
-            <h3>${report.title}</h3>
-            <span class="status-badge">${reportTypeLabel(report.type)}</span>
+            <h3>${escapeHtml(report.title)}</h3>
+            <span class="status-badge">${escapeHtml(reportTypeLabel(report.type))}</span>
           </header>
-          <small>Paciente: ${report.patient?.name || 'Paciente'}</small>
-          <small>Autor: ${report.author?.name || 'Clinica'}</small>
-          <p>${report.content}</p>
+          <small>Paciente: ${escapeHtml(report.patient?.name || 'Paciente')}</small>
+          <small>Autor: ${escapeHtml(report.author?.name || 'Clinica')}</small>
+          <p>${escapeHtml(report.content)}</p>
         </article>
       `
     )
@@ -639,14 +693,14 @@ const renderConsents = (consents) => {
       (consent) => `
         <article class="record-card">
           <header>
-            <h3>${consent.title}</h3>
-            <span class="status-badge ${consent.status}">${statusLabel(consent.status)}</span>
+            <h3>${escapeHtml(consent.title)}</h3>
+            <span class="status-badge ${escapeAttr(consent.status)}">${escapeHtml(statusLabel(consent.status))}</span>
           </header>
-          <small>Paciente: ${consent.patient?.name || 'Paciente'}</small>
-          <p>${consent.body}</p>
+          <small>Paciente: ${escapeHtml(consent.patient?.name || 'Paciente')}</small>
+          <p>${escapeHtml(consent.body)}</p>
           <section class="record-actions">
-            ${state.user.role === 'paciente' && consent.status === 'pending' ? `<button class="mini-action" type="button" data-consent-sign="${consent.id}">Firmar</button>` : ''}
-            ${consent.status !== 'revoked' ? `<button class="mini-action" type="button" data-consent-revoke="${consent.id}">Revocar</button>` : ''}
+            ${state.user.role === 'paciente' && consent.status === 'pending' ? `<button class="mini-action" type="button" data-consent-sign="${escapeAttr(consent.id)}">Firmar</button>` : ''}
+            ${consent.status !== 'revoked' ? `<button class="mini-action" type="button" data-consent-revoke="${escapeAttr(consent.id)}">Revocar</button>` : ''}
           </section>
         </article>
       `
@@ -671,13 +725,13 @@ const renderUsers = (users) => {
       (user) => `
         <article class="record-card">
           <header>
-            <h3>${user.name}</h3>
-            <span class="status-badge">${roleLabel(user.role)}</span>
+            <h3>${escapeHtml(user.name)}</h3>
+            <span class="status-badge">${escapeHtml(roleLabel(user.role))}</span>
           </header>
-          <small>${user.email}</small>
-          <small>${user.phone || 'Sin telefono'}</small>
+          <small>${escapeHtml(user.email)}</small>
+          <small>${escapeHtml(user.phone || 'Sin telefono')}</small>
           <section class="record-actions">
-            <button class="mini-action" type="button" data-user-disable="${user.id}">Desactivar</button>
+            <button class="mini-action" type="button" data-user-disable="${escapeAttr(user.id)}">Desactivar</button>
           </section>
         </article>
       `
@@ -714,8 +768,7 @@ navButtons.forEach((button) => {
 });
 
 document.querySelector('#logoutButton').addEventListener('click', () => {
-  localStorage.removeItem('physiosafe_token');
-  localStorage.removeItem('physiosafe_user');
+  session.clear();
   window.location.href = '/';
 });
 

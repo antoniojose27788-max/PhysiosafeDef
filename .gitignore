@@ -1,2 +1,10 @@
 .env
+.env.*
+!.env.example
 node_modules/
+npm-debug.log*
+*.log
+.physiosafe-*.pid
+qa-artifacts/
+nginx/data/
+nginx/letsencrypt/

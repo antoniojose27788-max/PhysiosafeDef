@@ -33,7 +33,8 @@ const createStorageAdapter = () => {
 
   const writeCookie = (name, value) => {
     if (typeof document === 'undefined') return;
-    document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; Path=/; SameSite=Lax`;
+    const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; Path=/; SameSite=Lax${secureFlag}`;
   };
 
   const deleteCookie = (name) => {

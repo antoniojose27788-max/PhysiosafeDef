@@ -27,6 +27,11 @@ PhysioSafe queda operativo como plataforma de gestion para clinica de fisioterap
 - El servidor ya no bloquea produccion por secretos placeholder salvo que `ENFORCE_SECURE_CONFIG=true`.
 - El `sequelize.sync({ alter: ... })` agresivo se ha eliminado del arranque por defecto.
 - Solo se altera esquema si `DB_SYNC_ALTER=true`.
+- Docker usa `npm ci --omit=dev` con `package-lock.json` para builds reproducibles.
+- `node_modules`, logs, artefactos QA y datos locales de Nginx quedan fuera del repositorio.
+- `.env` queda fuera de Git y fuera de la imagen Docker.
+- CORS permite el header protegido de Typebot y responde correctamente a preflight `OPTIONS`.
+- El rate limiter usa `req.ip` gestionado por `trust proxy` y limpia entradas expiradas para evitar crecimiento indefinido.
 
 ### Citas y fechas
 
@@ -67,6 +72,9 @@ Comprobaciones realizadas:
 - lectura de disponibilidad real OK
 - menu movil blindado para no mezclar contenido de fondo ni duplicar controles de cierre
 - normalizacion de preferencias de admision limpiada de cadenas corruptas
+- `npm run validate` ejecutado correctamente dentro y fuera del contenedor
+- preflight CORS de `/api/typebot/intake` validado con `204 No Content`
+- auditoria npm reducida a alertas moderadas transitivas de `uuid` via Sequelize, sin fix seguro no disruptivo disponible
 
 ## Notas operativas
 

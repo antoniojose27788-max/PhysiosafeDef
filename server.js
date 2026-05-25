@@ -18,10 +18,24 @@ const PLACEHOLDER_PATTERNS = [
   'physiosafe_typebot_webhook_secret_change_me'
 ];
 const memoryRateLimits = new Map();
+const RATE_LIMIT_MAX_KEYS = 5000;
 
 const hasPlaceholderValue = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
   return PLACEHOLDER_PATTERNS.some((pattern) => normalized.includes(pattern));
+};
+
+const getAllowedCorsOrigins = () => {
+  const configuredOrigins = String(process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return new Set([
+    ...configuredOrigins,
+    `http://localhost:${PORT}`,
+    `http://127.0.0.1:${PORT}`
+  ]);
 };
 
 const validateRuntimeConfig = () => {
@@ -44,12 +58,17 @@ const validateRuntimeConfig = () => {
 const createRateLimiter =
   ({ windowMs, maxRequests, message }) =>
   (req, res, next) => {
-    const forwardedFor = String(req.headers['x-forwarded-for'] || '')
-      .split(',')[0]
-      .trim();
-    const ip = forwardedFor || req.ip || req.socket.remoteAddress || 'unknown';
-    const key = `${req.path}:${ip}`;
     const now = Date.now();
+    if (memoryRateLimits.size > RATE_LIMIT_MAX_KEYS) {
+      for (const [entryKey, entry] of memoryRateLimits.entries()) {
+        if (entry.resetAt <= now) {
+          memoryRateLimits.delete(entryKey);
+        }
+      }
+    }
+
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const key = `${req.path}:${ip}`;
     const current = memoryRateLimits.get(key);
 
     if (!current || current.resetAt <= now) {
@@ -87,21 +106,20 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
-      const configuredOrigins = String(process.env.CORS_ORIGIN || 'http://localhost:3000')
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
+      const allowedOrigins = getAllowedCorsOrigins();
 
-      if (!origin || configuredOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.has(origin)) {
         callback(null, true);
         return;
       }
 
-      callback(new Error('Origen no permitido por CORS.'));
+      const error = new Error('Origen no permitido por CORS.');
+      error.status = 403;
+      callback(error);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-PhysioSafe-Typebot-Secret']
   })
 );
 

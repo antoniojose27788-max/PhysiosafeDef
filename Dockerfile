@@ -6,9 +6,9 @@ ENV NODE_ENV=production
 
 RUN addgroup -S physiosafe && adduser -S physiosafe -G physiosafe
 
-COPY package.json ./
+COPY package*.json ./
 
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 COPY . .
 

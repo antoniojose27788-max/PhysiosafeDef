@@ -108,7 +108,8 @@ app.use(
     origin: (origin, callback) => {
       const allowedOrigins = getAllowedCorsOrigins();
 
-      if (!origin || allowedOrigins.has(origin)) {
+      // AÑADIMOS EL PASE VIP PARA NGROK AQUÍ
+      if (!origin || allowedOrigins.has(origin) || origin.includes('ngrok-free.dev')) {
         callback(null, true);
         return;
       }

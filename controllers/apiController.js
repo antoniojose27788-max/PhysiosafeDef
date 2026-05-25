@@ -47,9 +47,12 @@ const hasUnexpectedFields = (payload, allowedFields) =>
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
 
 const normalizePreference = (value) => {
-  const text = String(value || '').toLowerCase();
-  if (['manana', 'mañana', 'morning', 'primera hora', 'matinal'].some((keyword) => text.includes(keyword))) return 'morning';
-  if (['tarde', 'afternoon', 'ultima hora', 'última hora'].some((keyword) => text.includes(keyword))) return 'afternoon';
+  const text = String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (['manana', 'morning', 'primera hora', 'matinal'].some((keyword) => text.includes(keyword))) return 'morning';
+  if (['tarde', 'afternoon', 'ultima hora'].some((keyword) => text.includes(keyword))) return 'afternoon';
   return 'any';
 };
 

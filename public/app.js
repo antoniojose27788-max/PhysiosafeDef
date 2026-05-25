@@ -133,19 +133,20 @@ if (session.getToken()) {
 }
 
 if (headerMenuToggle && headerMobileMenu) {
-  const headerMobileClose = headerMobileMenu.querySelector('.header-mobile-close');
+  if (headerMobileMenu.parentElement !== document.body) {
+    document.body.appendChild(headerMobileMenu);
+  }
+
   const setMenuOpen = (open) => {
     headerMobileMenu.hidden = !open;
     headerMenuToggle.setAttribute('aria-expanded', String(open));
     document.body.classList.toggle('menu-open', open);
+    document.documentElement.classList.toggle('menu-open', open);
+    headerMenuToggle.setAttribute('aria-label', open ? 'Cerrar menu' : 'Abrir menu');
   };
 
   headerMenuToggle.addEventListener('click', () => {
     setMenuOpen(headerMobileMenu.hidden);
-  });
-
-  headerMobileClose?.addEventListener('click', () => {
-    setMenuOpen(false);
   });
 
   headerMobileMenu.querySelectorAll('a').forEach((link) => {

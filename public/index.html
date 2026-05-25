@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-    <link href="/style.css?v=20260525-finalqa1" rel="stylesheet">
+    <link href="/style.css?v=20260525-responsive-overlay2" rel="stylesheet">
   </head>
   <body class="auth-surface">
     <header class="auth-header container">
@@ -29,34 +29,6 @@
             <span></span>
             <span></span>
           </button>
-          <section class="header-mobile-menu" id="mobileMenu" hidden>
-            <section class="header-mobile-panel">
-              <section class="header-mobile-top">
-                <button class="header-mobile-close" type="button" aria-label="Cerrar menu">
-                  <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-                </button>
-                <section class="header-pulse" aria-label="Estado del servicio">
-                  <span></span>
-                  <strong>Portal clinico activo</strong>
-                </section>
-              </section>
-              <section class="header-mobile-links" aria-label="Accesos principales">
-                <a href="#services">Servicios</a>
-                <a href="#method">Metodo</a>
-                <a href="#experience">Experiencia</a>
-              </section>
-              <section class="header-mobile-actions" aria-label="Acciones del portal">
-                <a class="ghost-link header-ghost-link" href="#services">
-                  <i class="fa-solid fa-stethoscope" aria-hidden="true"></i>
-                  Ver servicios
-                </a>
-                <a class="btn primary-action header-primary-action" href="#access">
-                  <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
-                  Acceder
-                </a>
-              </section>
-            </section>
-          </section>
           <section class="header-pulse" aria-label="Estado del servicio">
             <span></span>
             <strong>Portal clinico activo</strong>
@@ -89,6 +61,32 @@
         </section>
       </section>
     </header>
+
+    <section class="header-mobile-menu" id="mobileMenu" hidden>
+      <section class="header-mobile-panel">
+        <section class="header-mobile-top">
+          <section class="header-pulse" aria-label="Estado del servicio">
+            <span></span>
+            <strong>Portal clinico activo</strong>
+          </section>
+        </section>
+        <section class="header-mobile-links" aria-label="Accesos principales">
+          <a href="#services">Servicios</a>
+          <a href="#method">Metodo</a>
+          <a href="#experience">Experiencia</a>
+        </section>
+        <section class="header-mobile-actions" aria-label="Acciones del portal">
+          <a class="ghost-link header-ghost-link" href="#services">
+            <i class="fa-solid fa-stethoscope" aria-hidden="true"></i>
+            Ver servicios
+          </a>
+          <a class="btn primary-action header-primary-action" href="#access">
+            <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+            Acceder
+          </a>
+        </section>
+      </section>
+    </section>
 
     <main id="access">
       <section class="auth-hero">

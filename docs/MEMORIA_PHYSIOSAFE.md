@@ -39,6 +39,7 @@ PhysioSafe queda operativo como plataforma de gestion para clinica de fisioterap
 - Se mantiene el intake protegido por secreto.
 - La admision exige fisioterapeuta explicito.
 - El flujo sigue pensado para crear o actualizar paciente y generar cita pendiente coherente.
+- Las solicitudes de admision quedan visibles como citas pendientes vinculadas a paciente, fisioterapeuta y calendario.
 
 ### Responsive movil
 
@@ -47,6 +48,9 @@ PhysioSafe queda operativo como plataforma de gestion para clinica de fisioterap
 - Mejorada la estabilidad visual del header en pantallas pequenas.
 - Reforzada la estructura de las tarjetas de servicios en movil.
 - Anadido `text-size-adjust: 100%` para reducir deformaciones en Safari movil.
+- El menu hamburguesa se ha blindado como capa movil de pantalla completa para evitar solapes con hero, tarjetas, asistente flotante o contenido de fondo.
+- El menu movil se ha extraido fuera del `header` y el JS lo reubica en `body` si hiciera falta, evitando que `overflow`, filtros, animaciones o stacking contexts del header lo deformen.
+- Se ha actualizado el versionado de `style.css` para forzar recarga del CSS responsivo en produccion.
 
 ## Validacion ejecutada
 
@@ -61,11 +65,8 @@ Comprobaciones realizadas:
 - login de paciente OK
 - lectura de directorio OK
 - lectura de disponibilidad real OK
-- captura movil generada sobre `http://127.0.0.1:3000`
-
-Artefacto QA generado:
-
-- `qa-artifacts/home-mobile-390x844-restored.png`
+- menu movil blindado para no mezclar contenido de fondo ni duplicar controles de cierre
+- normalizacion de preferencias de admision limpiada de cadenas corruptas
 
 ## Notas operativas
 

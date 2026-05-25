@@ -358,6 +358,14 @@ textarea {
   color: var(--ink);
   font-weight: 850;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 12px 24px rgba(9, 43, 49, 0.06);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.header-mobile-links a:hover {
+  border-color: rgba(12, 143, 136, 0.24);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 16px 32px rgba(12, 143, 136, 0.14);
+  transform: translateX(4px);
 }
 
 .header-mobile-links a::after {
@@ -365,6 +373,11 @@ textarea {
   font-family: "Font Awesome 6 Free";
   font-weight: 900;
   color: var(--brand);
+  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.header-mobile-links a:hover::after {
+  transform: translateX(6px);
 }
 
 .header-mobile-actions .header-ghost-link,
@@ -393,7 +406,7 @@ body.menu-open {
   color: var(--ink-soft);
   font-size: 0.92rem;
   font-weight: 800;
-  transition: color 0.28s ease, transform 0.28s ease;
+  transition: color 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .header-links a::after {
@@ -407,12 +420,12 @@ body.menu-open {
   transform: scaleX(0.26);
   transform-origin: left;
   opacity: 0;
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition: transform 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .header-links a:hover {
-  color: var(--ink);
-  transform: translateY(-1px);
+  color: var(--brand);
+  transform: translateY(-2px);
 }
 
 .header-links a:hover::after {
@@ -466,6 +479,7 @@ body.menu-open {
   background: rgba(255, 255, 255, 0.54);
   backdrop-filter: blur(18px);
   box-shadow: 0 10px 28px rgba(9, 43, 49, 0.08);
+  transition: all 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .ghost-link {
@@ -631,7 +645,7 @@ body.menu-open {
   background: var(--paper);
   backdrop-filter: blur(22px);
   box-shadow: var(--shadow-soft);
-  transition: transform 0.32s ease, box-shadow 0.32s ease, border-color 0.32s ease, background 0.32s ease;
+  transition: transform 0.36s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.36s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.32s ease, background 0.32s ease;
 }
 
 .glass-panel::before,
@@ -671,8 +685,9 @@ body.menu-open {
 .glass-panel:hover,
 .record-card:hover,
 .stat-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
   box-shadow: var(--shadow-lift), var(--shadow-glow);
+  border-color: rgba(143, 247, 238, 0.28);
 }
 
 .trust-strip article::after,
@@ -862,12 +877,13 @@ body.menu-open {
 .service-card {
   display: grid;
   grid-template-rows: 190px 1fr;
-  transition: transform 0.28s ease, box-shadow 0.28s ease;
+  transition: transform 0.36s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.36s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.32s ease;
 }
 
 .service-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
   box-shadow: var(--shadow-lift);
+  border-color: rgba(143, 247, 238, 0.24);
 }
 
 .service-card section {
@@ -1075,6 +1091,12 @@ body.menu-open {
   color: var(--muted);
   background: transparent;
   font-weight: 800;
+  transition: all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.segment:hover:not(.active) {
+  color: var(--ink-soft);
+  background: rgba(12, 143, 136, 0.06);
 }
 
 .segment.active,
@@ -1108,13 +1130,22 @@ label {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background-color: rgba(255, 255, 255, 0.76);
-  transition: all 0.3s ease;
+  transition: all 0.36s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.form-control:hover,
+.form-select:hover {
+  border-color: rgba(12, 143, 136, 0.36);
+  background-color: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 4px 12px rgba(12, 143, 136, 0.12);
 }
 
 .form-control:focus,
 .form-select:focus {
-  border-color: rgba(12, 143, 136, 0.58);
-  box-shadow: 0 0 0 0.24rem rgba(12, 143, 136, 0.16);
+  border-color: rgba(12, 143, 136, 0.68);
+  background-color: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 0 3px rgba(12, 143, 136, 0.14), 0 8px 24px rgba(12, 143, 136, 0.16);
+  outline: none;
 }
 
 textarea.form-control {
@@ -1168,11 +1199,23 @@ textarea.form-control {
   box-shadow: 0 18px 40px rgba(12, 143, 136, 0.32);
 }
 
-.primary-action:hover,
+.primary-action:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 24px 52px rgba(12, 143, 136, 0.42);
+  background: linear-gradient(135deg, var(--brand-light), var(--brand));
+}
+
 .secondary-action:hover,
-.ghost-link:hover,
+.ghost-link:hover {
+  transform: translateY(-3px);
+  border-color: rgba(12, 143, 136, 0.28);
+  background: rgba(255, 255, 255, 0.68);
+}
+
 .icon-button:hover {
   transform: translateY(-3px);
+  border-color: rgba(12, 143, 136, 0.24);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .primary-action:disabled,
@@ -1397,6 +1440,7 @@ textarea.form-control {
   background: transparent;
   font-weight: 850;
   text-align: left;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .rail-link::before {
@@ -1407,15 +1451,16 @@ textarea.form-control {
   width: 3px;
   border-radius: 999px;
   content: "";
-  background: var(--accent);
+  background: linear-gradient(180deg, var(--accent), var(--brand-light));
   opacity: 0;
   transform: scaleY(0.4);
-  transition: all 0.24s ease;
+  transition: all 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .rail-link:hover {
-  color: var(--ink);
+  color: var(--ink-soft);
   background: rgba(12, 143, 136, 0.08);
+  transform: translateX(2px);
 }
 
 .rail-link.active::before {
@@ -3490,26 +3535,36 @@ body.menu-open .floating-assistant {
     align-items: flex-start;
   }
 
-  .header-mobile-close {
+  .header-mobile-back {
     display: inline-grid;
     width: 58px;
     height: 58px;
     flex: 0 0 58px;
     place-items: center;
     margin-left: auto;
-    border: 1px solid rgba(12, 143, 136, 0.18);
-    border-radius: 20px;
-    color: var(--brand-dark);
+    border: 1px solid rgba(12, 143, 136, 0.2);
+    border-radius: 16px;
+    color: var(--brand);
     background:
-      linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(238, 250, 248, 0.96)),
+      linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(232, 249, 247, 0.96)),
       #ffffff;
     box-shadow:
-      0 16px 34px rgba(9, 43, 49, 0.12),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.78);
-    font-size: 1.45rem;
+      0 12px 28px rgba(12, 143, 136, 0.1),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.82);
+    font-size: 1.4rem;
+    transition: all 0.28s ease;
+    text-decoration: none;
   }
 
-  .header-mobile-close:focus-visible {
+  .header-mobile-back:hover {
+    color: var(--brand-light);
+    box-shadow:
+      0 14px 36px rgba(12, 143, 136, 0.16),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.82);
+    transform: translateX(-4px);
+  }
+
+  .header-mobile-back:focus-visible {
     outline: 3px solid rgba(12, 143, 136, 0.24);
     outline-offset: 4px;
   }

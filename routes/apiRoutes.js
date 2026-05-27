@@ -4,9 +4,10 @@ const { authenticate, authorize } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-router.post('/typebot/intake', apiController.receiveTypebotIntake);
-
 router.use(authenticate);
+
+router.post('/typebot/intake', apiController.receiveTypebotIntake);
+router.get('/typebot/active-physios', apiController.listActivePhysiotherapists);
 
 router
   .route('/users')

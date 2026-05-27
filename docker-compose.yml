@@ -53,69 +53,6 @@ services:
     networks:
       - physio-network
 
-  typebot-db:
-    image: postgres:15
-    container_name: physiosafe_typebot_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${TYPEBOT_DB_NAME}
-      POSTGRES_USER: ${TYPEBOT_DB_USER}
-      POSTGRES_PASSWORD: ${TYPEBOT_DB_PASSWORD}
-    volumes:
-      - typebot_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${TYPEBOT_DB_USER} -d ${TYPEBOT_DB_NAME} -h localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - physio-network
-
-  typebot-viewer:
-    image: baptistearno/typebot-viewer:latest
-    container_name: physiosafe_bot_viewer
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql://${TYPEBOT_DB_USER}:${TYPEBOT_DB_PASSWORD}@typebot-db:5432/${TYPEBOT_DB_NAME}
-      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
-      TYPEBOT_WEBHOOK_SECRET: ${TYPEBOT_WEBHOOK_SECRET}
-      NEXTAUTH_URL: ${TYPEBOT_BUILDER_URL}
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      NEXT_PUBLIC_VIEWER_URL: ${TYPEBOT_VIEWER_URL}
-      CORS_ORIGIN: "*"
-    ports:
-      - "${TYPEBOT_VIEWER_PORT}:3000"
-    depends_on:
-      typebot-db:
-        condition: service_healthy
-    networks:
-      - physio-network
-
-  typebot-builder:
-    image: baptistearno/typebot-builder:latest
-    container_name: physiosafe_bot_builder
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql://${TYPEBOT_DB_USER}:${TYPEBOT_DB_PASSWORD}@typebot-db:5432/${TYPEBOT_DB_NAME}
-      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
-      TYPEBOT_WEBHOOK_SECRET: ${TYPEBOT_WEBHOOK_SECRET}
-      NEXTAUTH_URL: ${TYPEBOT_BUILDER_URL}
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      NEXT_PUBLIC_VIEWER_URL: ${TYPEBOT_VIEWER_URL}
-    ports:
-      - "${TYPEBOT_BUILDER_PORT}:3000"
-    depends_on:
-      typebot-db:
-        condition: service_healthy
-      typebot-viewer:
-        condition: service_started
-    networks:
-      - physio-network
-
   nginx-proxy-manager:
     image: jc21/nginx-proxy-manager:latest
     container_name: physiosafe_npm
@@ -144,7 +81,6 @@ services:
 
 volumes:
   postgres_data:
-  typebot_postgres_data:
 
 networks:
   physio-network:

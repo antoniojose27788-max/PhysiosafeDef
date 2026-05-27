@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const { Op, fn, col } = require('sequelize');
 const { sequelize, User, Appointment, Report, Consent, ScheduleBlock } = require('../models');
 
@@ -450,25 +451,23 @@ const ensureBookableSlot = async ({ startsAt, endsAt, physiotherapistId, transac
   }
 };
 
+const listActivePhysiotherapists = asyncHandler(async (req, res) => {
+  const physiotherapists = await User.findAll({
+    where: { role: 'fisioterapeuta', isActive: true },
+    attributes: ['id', 'name', 'email'],
+    order: [['name', 'ASC']]
+  });
+  res.status(200).json({ physiotherapists });
+});
+
 const receiveTypebotIntake = asyncHandler(async (req, res) => {
-  const configuredSecret = process.env.TYPEBOT_WEBHOOK_SECRET;
-  const receivedSecret = req.headers['x-physiosafe-typebot-secret'];
-
-  if (!configuredSecret || configuredSecret === 'replace_with_typebot_webhook_shared_secret') {
-    return res.status(503).json({ message: 'Webhook Typebot no configurado.' });
-  }
-
-  if (receivedSecret !== configuredSecret) {
-    return res.status(401).json({ message: 'Webhook Typebot no autorizado.' });
-  }
-
   const {
     name,
     email,
     phone,
     reason,
-    pain,
     area,
+    pain,
     urgency,
     symptomDuration,
     redFlags,
@@ -483,9 +482,9 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
     startsAt,
     endsAt,
     preferredDate,
-    preferredTime,
-    source = 'typebot'
+    preferredTime
   } = req.body;
+  const source = 'dashboard-chatbot';
 
   if (!name || !email) {
     return res.status(400).json({ message: 'Nombre y email son obligatorios para la admision.' });
@@ -1513,6 +1512,7 @@ const getStats = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  listActivePhysiotherapists,
   listAppointments,
   listAvailability,
   listScheduleBlocks,

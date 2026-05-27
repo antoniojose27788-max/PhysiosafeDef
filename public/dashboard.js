@@ -662,7 +662,17 @@ const renderAppointments = (appointments) => {
               <small>Fisio: ${escapeHtml(appointment.physiotherapist?.name || 'Sin fisio')}</small>
               ${intakeMeta || `<p>${escapeHtml(appointment.notes || appointment.treatmentType || '')}</p>`}
               <section class="record-actions">
-                ${['admin', 'fisioterapeuta'].includes(state.user.role) && appointment.status === 'pending' ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:scheduled">Aceptar</button>` : ''}
+                ${['admin', 'fisioterapeuta'].includes(state.user.role) && appointment.status === 'pending'
+              ? `
+                  ${!appointment.physiotherapistId ? `
+                    <select class="form-select form-select-sm" style="display:inline-block; width: auto; min-width: 150px;" id="assign-physio-${escapeAttr(appointment.id)}">
+                      <option value="">Selecciona Fisio...</option>
+                      ${(state.users || []).filter(u => u.role === 'fisioterapeuta' && u.isActive).map(p => `<option value="${escapeAttr(p.id)}">${escapeHtml(p.name)}</option>`).join('')}
+                    </select>
+                  ` : ''}
+                  <button class="mini-action" type="button" data-appointment-accept="${escapeAttr(appointment.id)}">${appointment.physiotherapistId ? 'Aceptar' : 'Asignar y Aceptar'}</button>
+                `
+              : ''}
                 ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:completed">Completar</button>` : ''}
                 ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:validated">Validar</button>` : ''}
                 ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:cancelled">Cancelar</button>` : ''}
@@ -697,6 +707,14 @@ const renderAssistantIntakes = (appointments) => {
         (appointment, index) => {
           const meta = renderIntakeMeta(appointment.notes);
           const canAct = ['admin', 'fisioterapeuta'].includes(state.user.role);
+          const activePhysios = (state.users || []).filter(u => u.role === 'fisioterapeuta' && u.isActive);
+          const physioSelectHtml = !appointment.physiotherapistId ? `
+            <select class="form-select form-select-sm" style="display:inline-block; width: auto; min-width: 150px;" id="assign-physio-${escapeAttr(appointment.id)}">
+              <option value="">Selecciona Fisio...</option>
+              ${activePhysios.map(p => `<option value="${escapeAttr(p.id)}">${escapeHtml(p.name)}</option>`).join('')}
+            </select>
+          ` : '';
+
           return `
             <article class="record-card record-card--typebot" style="--stagger: ${index}">
               <header>
@@ -709,7 +727,10 @@ const renderAssistantIntakes = (appointments) => {
               ${meta}
               <section class="record-actions">
                 ${canAct && appointment.status === 'pending'
-                  ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:scheduled">Aceptar y programar</button>`
+                  ? `
+                  ${physioSelectHtml}
+                  <button class="mini-action" type="button" data-appointment-accept="${escapeAttr(appointment.id)}">${appointment.physiotherapistId ? 'Aceptar y programar' : 'Asignar y Aceptar'}</button>
+                `
                   : ''
                 }
                 ${canAct && ['pending', 'scheduled'].includes(appointment.status)
@@ -1013,6 +1034,7 @@ const ensureSectionData = async (sectionName, force = false) => {
     } else if (sectionName === 'users') {
       await loadUsers(true, signal);
     } else if (sectionName === 'assistant') {
+      await loadUsers(false, signal);
       await loadAppointments(signal);
     }
 
@@ -1140,12 +1162,13 @@ document.querySelector('#userForm').addEventListener('submit', async (event) => 
 
 document.addEventListener('click', async (event) => {
   const appointmentAction = event.target.closest('[data-appointment-status]');
+  const appointmentAcceptAction = event.target.closest('[data-appointment-accept]');
   const signAction = event.target.closest('[data-consent-sign]');
   const revokeAction = event.target.closest('[data-consent-revoke]');
   const disableAction = event.target.closest('[data-user-disable]');
   const slotAction = event.target.closest('[data-slot-start]');
   const scheduleBlockDeleteAction = event.target.closest('[data-schedule-block-delete]');
-  const remoteAction = appointmentAction || signAction || revokeAction || disableAction || scheduleBlockDeleteAction;
+  const remoteAction = appointmentAction || appointmentAcceptAction || signAction || revokeAction || disableAction || scheduleBlockDeleteAction;
 
   try {
     if (slotAction) {
@@ -1165,9 +1188,25 @@ document.addEventListener('click', async (event) => {
 
     if (appointmentAction) {
       const [id, status] = appointmentAction.dataset.appointmentStatus.split(':');
-      await request(`/appointments/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      const body = { status };
+      await request(`/appointments/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
       await refreshAll();
       setFeedback('Estado de cita actualizado.', 'success');
+    }
+
+    if (appointmentAcceptAction) {
+      const id = appointmentAcceptAction.dataset.appointmentAccept;
+      const select = document.querySelector(`#assign-physio-${escapeAttr(id)}`);
+      const physiotherapistId = select ? select.value : null;
+
+      const body = { status: 'scheduled' };
+      if (physiotherapistId) {
+        body.physiotherapistId = physiotherapistId;
+      }
+
+      await request(`/appointments/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      await refreshAll();
+      setFeedback('Admisión asignada y aceptada correctamente.', 'success');
     }
 
     if (signAction) {

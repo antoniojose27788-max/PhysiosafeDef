@@ -1,13 +1,13 @@
 const express = require('express');
 const apiController = require('../controllers/apiController');
-const { authenticate, authorize } = require('../middlewares/authMiddleware');
+const { authenticate, optionalAuthenticate, authorize } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-router.use(authenticate);
-
-router.post('/typebot/intake', apiController.receiveTypebotIntake);
+router.post('/typebot/intake', optionalAuthenticate, apiController.receiveTypebotIntake);
 router.get('/typebot/active-physios', apiController.listActivePhysiotherapists);
+
+router.use(authenticate);
 
 router
   .route('/users')

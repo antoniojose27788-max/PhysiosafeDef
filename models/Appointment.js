@@ -3,7 +3,7 @@ const { DataTypes, Model, Op } = require('sequelize');
 const APPOINTMENT_STATUSES = ['pending', 'scheduled', 'completed', 'validated', 'cancelled', 'no_show'];
 
 module.exports = (sequelize) => {
-  class Appointment extends Model {}
+  class Appointment extends Model { }
 
   Appointment.init(
     {
@@ -18,7 +18,7 @@ module.exports = (sequelize) => {
       },
       physiotherapistId: {
         type: DataTypes.UUID,
-        allowNull: false
+        allowNull: true
       },
       title: {
         type: DataTypes.STRING(140),

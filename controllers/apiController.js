@@ -267,18 +267,6 @@ const findIntakePhysiotherapist = async ({ physiotherapistId, physiotherapistEma
     if (physiotherapist) return physiotherapist;
   }
 
-  // Fallback 1: Buscar cualquier fisioterapeuta activo
-  const anyPhysio = await User.findOne({
-    where: { role: 'fisioterapeuta', isActive: true }
-  });
-  if (anyPhysio) return anyPhysio;
-
-  // Fallback 2: Buscar cualquier administrador activo
-  const anyAdmin = await User.findOne({
-    where: { role: 'admin', isActive: true }
-  });
-  if (anyAdmin) return anyAdmin;
-
   return null;
 };
 
@@ -326,7 +314,8 @@ const getAppointmentWhereForUser = (user) => {
   }
 
   if (isPhysio(user)) {
-    return { physiotherapistId: user.id };
+    // Physios see their own appointments AND unassigned ones (chatbot intake)
+    return { physiotherapistId: { [Op.or]: [user.id, null] } };
   }
 
   return { patientId: user.id };
@@ -354,21 +343,21 @@ const findVisibleAppointment = async (id, user) =>
   });
 
 const validateAppointmentUsers = async ({ patientId, physiotherapistId }) => {
-  const [patient, physiotherapist] = await Promise.all([
-    User.findOne({ where: { id: patientId, role: 'paciente', isActive: true } }),
-    User.findOne({ where: { id: physiotherapistId, role: 'fisioterapeuta', isActive: true } })
-  ]);
-
+  const patient = await User.findOne({ where: { id: patientId, role: 'paciente', isActive: true } });
   if (!patient) {
     const error = new Error('Paciente no encontrado o inactivo.');
     error.status = 400;
     throw error;
   }
 
-  if (!physiotherapist) {
-    const error = new Error('Fisioterapeuta no encontrado o inactivo.');
-    error.status = 400;
-    throw error;
+  // physiotherapistId can be null for unassigned chatbot appointments
+  if (physiotherapistId) {
+    const physiotherapist = await User.findOne({ where: { id: physiotherapistId, role: 'fisioterapeuta', isActive: true } });
+    if (!physiotherapist) {
+      const error = new Error('Fisioterapeuta no encontrado o inactivo.');
+      error.status = 400;
+      throw error;
+    }
   }
 };
 
@@ -436,11 +425,15 @@ const ensureBookableSlot = async ({ startsAt, endsAt, physiotherapistId, transac
     throw error;
   }
 
+  const blockWhere = { date: dateOnly };
+  if (physiotherapistId) {
+    blockWhere[Op.or] = [{ physiotherapistId }, { physiotherapistId: null }];
+  } else {
+    blockWhere.physiotherapistId = null; // Only global blocks matter for unassigned appointments
+  }
+
   const block = await ScheduleBlock.findOne({
-    where: {
-      date: dateOnly,
-      [Op.or]: [{ physiotherapistId }, { physiotherapistId: null }]
-    },
+    where: blockWhere,
     transaction
   });
 
@@ -543,28 +536,39 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
   }
 
   const physiotherapist = await findIntakePhysiotherapist({ physiotherapistId, physiotherapistEmail });
-  if (!physiotherapist) {
+
+  // Use a fallback physio ONLY for finding a valid working slot
+  let slotPhysio = physiotherapist;
+  if (!slotPhysio) {
+    slotPhysio = await User.findOne({ where: { role: 'fisioterapeuta', isActive: true } });
+  }
+  if (!slotPhysio) {
     return res.status(400).json({
-      message: 'No se encontro ningun fisioterapeuta o administrador activo en el sistema para asignar la admision.'
+      message: 'No hay fisioterapeutas activos en el sistema para calcular horarios de la admision.'
     });
   }
 
   let appointment = null;
   let appointmentCreated = false;
   let appointmentMessage = '';
+
+  // Check for existing intake appointment only if we have a specific physio
+  const existingIntakeWhere = {
+    patientId: patient.id,
+    status: { [Op.in]: ['pending', 'scheduled'] },
+    startsAt: { [Op.gt]: new Date() }
+  };
+  if (physiotherapist) {
+    existingIntakeWhere.physiotherapistId = physiotherapist.id;
+  }
   const existingIntakeAppointment = await Appointment.findOne({
-    where: {
-      patientId: patient.id,
-      physiotherapistId: physiotherapist.id,
-      status: { [Op.in]: ['pending', 'scheduled'] },
-      startsAt: { [Op.gt]: new Date() }
-    },
+    where: existingIntakeWhere,
     order: [['startsAt', 'ASC']]
   });
 
   if (existingIntakeAppointment) {
     appointment = existingIntakeAppointment;
-    appointmentMessage = 'Admision guardada. El paciente ya tenia una cita activa con ese fisioterapeuta.';
+    appointmentMessage = 'Admision guardada. El paciente ya tenia una cita activa.';
   } else {
     let slot = null;
     const requestedSlot = resolveIntakeSlot({ startsAt, endsAt, preferredDate, preferredTime });
@@ -574,13 +578,15 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
         await ensureBookableSlot({
           startsAt: requestedSlot.startsAt,
           endsAt: requestedSlot.endsAt,
-          physiotherapistId: physiotherapist.id
+          physiotherapistId: slotPhysio.id
         });
-        await ensureNoAppointmentOverlap({
-          startsAt: requestedSlot.startsAt,
-          endsAt: requestedSlot.endsAt,
-          physiotherapistId: physiotherapist.id
-        });
+        if (physiotherapist) {
+          await ensureNoAppointmentOverlap({
+            startsAt: requestedSlot.startsAt,
+            endsAt: requestedSlot.endsAt,
+            physiotherapistId: physiotherapist.id
+          });
+        }
         await ensureNoPatientOverlap({
           startsAt: requestedSlot.startsAt,
           endsAt: requestedSlot.endsAt,
@@ -594,13 +600,13 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
 
     if (!slot) {
       const preference = normalizePreferenceSafe(`${availability || ''} ${preferredTime || ''}`);
-      slot = await findFirstAvailableSlot({ physiotherapistId: physiotherapist.id, preference });
+      slot = await findFirstAvailableSlot({ physiotherapistId: slotPhysio.id, preference });
     }
 
     if (!slot) {
       return res.status(409).json({
         message:
-          'No hay huecos disponibles para ese fisioterapeuta en los proximos 60 dias. La admision se ha guardado, pero no se pudo generar cita.'
+          'No hay huecos disponibles en los proximos 60 dias. La admision se ha guardado, pero no se pudo generar cita.'
       });
     }
 
@@ -612,15 +618,17 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
       await ensureBookableSlot({
         startsAt: slot.startsAt,
         endsAt: slot.endsAt,
-        physiotherapistId: physiotherapist.id,
+        physiotherapistId: slotPhysio.id,
         transaction
       });
-      await ensureNoAppointmentOverlap({
-        startsAt: slot.startsAt,
-        endsAt: slot.endsAt,
-        physiotherapistId: physiotherapist.id,
-        transaction
-      });
+      if (physiotherapist) {
+        await ensureNoAppointmentOverlap({
+          startsAt: slot.startsAt,
+          endsAt: slot.endsAt,
+          physiotherapistId: physiotherapist.id,
+          transaction
+        });
+      }
       await ensureNoPatientOverlap({
         startsAt: slot.startsAt,
         endsAt: slot.endsAt,
@@ -631,7 +639,7 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
       return Appointment.create(
         {
           patientId: patient.id,
-          physiotherapistId: physiotherapist.id,
+          physiotherapistId: physiotherapist ? physiotherapist.id : null,
           title:
             intakePriority === 'revision_prioritaria'
               ? 'Solicitud Typebot - Revision prioritaria'
@@ -1110,7 +1118,8 @@ const updateAppointment = asyncHandler(async (req, res) => {
   }
 
   if (isPhysio(req.user)) {
-    delete payload.physiotherapistId;
+    // Allow physio to assign to any physio (acting as dispatcher)
+    // Removed restriction that forced self-assignment
   }
 
   if (payload.status && !Appointment.APPOINTMENT_STATUSES.includes(payload.status)) {

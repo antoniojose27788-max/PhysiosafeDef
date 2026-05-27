@@ -18,7 +18,8 @@ const state = {
   appointmentsByDate: new Map(),
   scheduleBlockByDate: new Map(),
   availability: [],
-  calendarDate: new Date()
+  calendarDate: new Date(),
+  usersLoaded: false
 };
 
 const reportTypeLabel = (type) =>
@@ -31,10 +32,29 @@ const reportTypeLabel = (type) =>
     }[type] || 'Reporte'
   );
 
+// Cache DOM elements
 const feedback = document.querySelector('#dashboardFeedback');
 const title = document.querySelector('#workspaceTitle');
 const sections = document.querySelectorAll('.dashboard-section');
 const navButtons = document.querySelectorAll('[data-section]');
+
+const statsGrid = document.querySelector('#statsGrid');
+const statusBoard = document.querySelector('#statusBoard');
+const appointmentsList = document.querySelector('#appointmentsList');
+const assistantIntakeList = document.querySelector('#assistantIntakeList');
+const calendarGrid = document.querySelector('#calendarGrid');
+const calendarTitle = document.querySelector('#calendarTitle');
+const reportsList = document.querySelector('#reportsList');
+const consentsList = document.querySelector('#consentsList');
+const usersList = document.querySelector('#usersList');
+const availabilityPanel = document.querySelector('#availabilityPanel');
+
+let activeAbortController = null;
+const loadedSections = new Set();
+
+const scheduleUpdate = (fn) => {
+  requestAnimationFrame(fn);
+};
 
 if (!token) {
   window.location.href = '/';
@@ -80,6 +100,9 @@ const request = async (path, options = {}) => {
       ...options
     });
   } catch (error) {
+    if (error.name === 'AbortError') {
+      throw error;
+    }
     throw new Error('No se pudo conectar con PhysioSafe. Revisa que el servidor este activo y vuelve a intentarlo.');
   }
 
@@ -221,123 +244,142 @@ const statusLabel = (status) =>
   })[status] || status;
 
 const renderEmpty = (target, text) => {
-  target.innerHTML = `<article class="record-card"><h3>${escapeHtml(text)}</h3><small>No hay datos disponibles.</small></article>`;
+  if (!target) return;
+  scheduleUpdate(() => {
+    target.innerHTML = `<article class="record-card"><h3>${escapeHtml(text)}</h3><small>No hay datos disponibles.</small></article>`;
+  });
 };
 
 const fillSelect = (selector, items, placeholder) => {
-  document.querySelectorAll(selector).forEach((select) => {
-    select.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>${items
-      .map((item) => `<option value="${escapeAttr(item.id)}">${escapeHtml(item.name)} - ${escapeHtml(item.email)}</option>`)
-      .join('')}`;
+  scheduleUpdate(() => {
+    document.querySelectorAll(selector).forEach((select) => {
+      select.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>${items
+        .map((item) => `<option value="${escapeAttr(item.id)}">${escapeHtml(item.name)} - ${escapeHtml(item.email)}</option>`)
+        .join('')}`;
+    });
   });
 };
 
 const fillScheduleBlockPhysioSelect = () => {
-  document.querySelectorAll('#scheduleBlockForm select[name="physiotherapistId"]').forEach((select) => {
-    const allOption = state.user?.role === 'admin' ? '<option value="">Toda la clinica</option>' : '';
-    select.innerHTML =
-      allOption +
-      state.physiotherapists
-        .map((item) => `<option value="${escapeAttr(item.id)}">${escapeHtml(item.name)} - ${escapeHtml(item.email)}</option>`)
-        .join('');
+  scheduleUpdate(() => {
+    document.querySelectorAll('#scheduleBlockForm select[name="physiotherapistId"]').forEach((select) => {
+      const allOption = state.user?.role === 'admin' ? '<option value="">Toda la clinica</option>' : '';
+      select.innerHTML =
+        allOption +
+        state.physiotherapists
+          .map((item) => `<option value="${escapeAttr(item.id)}">${escapeHtml(item.name)} - ${escapeHtml(item.email)}</option>`)
+          .join('');
 
-    if (state.user?.role === 'fisioterapeuta') {
-      select.value = state.user.id;
-      select.setAttribute('disabled', 'disabled');
-    } else {
-      select.removeAttribute('disabled');
-    }
+      if (state.user?.role === 'fisioterapeuta') {
+        select.value = state.user.id;
+        select.setAttribute('disabled', 'disabled');
+      } else {
+        select.removeAttribute('disabled');
+      }
+    });
   });
 };
 
 const configureAppointmentFormForRole = () => {
-  const form = document.querySelector('#appointmentForm');
-  if (!form || !state.user) return;
+  scheduleUpdate(() => {
+    const form = document.querySelector('#appointmentForm');
+    if (!form || !state.user) return;
 
-  const patientSelect = form.elements.patientId;
-  const physiotherapistSelect = form.elements.physiotherapistId;
-  const statusSelect = form.elements.status;
-  const titleInput = form.elements.title;
-  const treatmentInput = form.elements.treatmentType;
-  const notesInput = form.elements.notes;
-  const submitButton = form.querySelector('button[type="submit"]');
+    const patientSelect = form.elements.patientId;
+    const physiotherapistSelect = form.elements.physiotherapistId;
+    const statusSelect = form.elements.status;
+    const titleInput = form.elements.title;
+    const treatmentInput = form.elements.treatmentType;
+    const notesInput = form.elements.notes;
+    const submitButton = form.querySelector('button[type="submit"]');
 
-  if (state.user.role === 'paciente') {
-    if (patientSelect) {
-      patientSelect.value = state.user.id;
-      patientSelect.setAttribute('disabled', 'disabled');
+    if (state.user.role === 'paciente') {
+      if (patientSelect) {
+        patientSelect.value = state.user.id;
+        patientSelect.setAttribute('disabled', 'disabled');
+      }
+
+      if (physiotherapistSelect && !physiotherapistSelect.value && state.physiotherapists.length) {
+        physiotherapistSelect.value = state.physiotherapists[0].id;
+      }
+
+      if (statusSelect) {
+        statusSelect.value = 'pending';
+        statusSelect.setAttribute('disabled', 'disabled');
+      }
+
+      if (titleInput && !titleInput.value) {
+        titleInput.value = 'Solicitud de cita de fisioterapia';
+      }
+
+      if (treatmentInput && !treatmentInput.value) {
+        treatmentInput.value = 'Valoracion inicial';
+      }
+
+      if (notesInput) {
+        notesInput.placeholder = 'Describe brevemente el motivo, zona afectada, dolor y disponibilidad.';
+      }
+
+      if (submitButton) {
+        submitButton.innerHTML = '<i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Solicitar cita';
+      }
+
+      return;
     }
 
-    if (physiotherapistSelect && !physiotherapistSelect.value && state.physiotherapists.length) {
-      physiotherapistSelect.value = state.physiotherapists[0].id;
-    }
-
-    if (statusSelect) {
-      statusSelect.value = 'pending';
-      statusSelect.setAttribute('disabled', 'disabled');
-    }
-
-    if (titleInput && !titleInput.value) {
-      titleInput.value = 'Solicitud de cita de fisioterapia';
-    }
-
-    if (treatmentInput && !treatmentInput.value) {
-      treatmentInput.value = 'Valoracion inicial';
-    }
-
-    if (notesInput) {
-      notesInput.placeholder = 'Describe brevemente el motivo, zona afectada, dolor y disponibilidad.';
-    }
+    patientSelect?.removeAttribute('disabled');
+    statusSelect?.removeAttribute('disabled');
 
     if (submitButton) {
-      submitButton.innerHTML = '<i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Solicitar cita';
+      submitButton.innerHTML = '<i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Crear cita';
     }
-
-    return;
-  }
-
-  patientSelect?.removeAttribute('disabled');
-  statusSelect?.removeAttribute('disabled');
-
-  if (submitButton) {
-    submitButton.innerHTML = '<i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Crear cita';
-  }
-};
-
-const loadMe = async () => {
-  const { user } = await request('/auth/me');
-  state.user = user;
-  session.setUser(user);
-  document.querySelector('#currentUser').textContent = `${user.name} - ${roleLabel(user.role)}`;
-  document.querySelectorAll('.admin-only').forEach((item) => item.classList.toggle('d-none', user.role !== 'admin'));
-  document.querySelectorAll('.admin-clinical-only').forEach((item) => {
-    item.classList.toggle('d-none', !['admin', 'fisioterapeuta'].includes(user.role));
   });
 };
 
-const loadUsers = async () => {
+const loadMe = async (signal = null) => {
+  const { user } = await request('/auth/me', { signal });
+  state.user = user;
+  session.setUser(user);
+  scheduleUpdate(() => {
+    const currentUserEl = document.querySelector('#currentUser');
+    if (currentUserEl) {
+      currentUserEl.textContent = `${user.name} - ${roleLabel(user.role)}`;
+    }
+    document.querySelectorAll('.admin-only').forEach((item) => item.classList.toggle('d-none', user.role !== 'admin'));
+    document.querySelectorAll('.admin-clinical-only').forEach((item) => {
+      item.classList.toggle('d-none', !['admin', 'fisioterapeuta'].includes(user.role));
+    });
+  });
+};
+
+const loadUsers = async (force = false, signal = null) => {
+  if (state.usersLoaded && !force) return;
+
   if (state.user.role !== 'admin') {
     if (['fisioterapeuta', 'paciente'].includes(state.user.role)) {
-      const { patients, physiotherapists } = await request('/directory');
+      const { patients, physiotherapists } = await request('/directory', { signal });
       state.patients = patients;
       state.physiotherapists = physiotherapists;
       fillSelect('select[name="patientId"]', state.patients, 'Selecciona paciente');
       fillSelect('select[name="physiotherapistId"]', state.physiotherapists, 'Selecciona fisioterapeuta');
 
-      if (state.user.role === 'fisioterapeuta') {
-        document.querySelectorAll('select[name="physiotherapistId"]').forEach((select) => {
-          select.value = state.user.id;
-          select.setAttribute('disabled', 'disabled');
-        });
-      }
+      scheduleUpdate(() => {
+        if (state.user.role === 'fisioterapeuta') {
+          document.querySelectorAll('select[name="physiotherapistId"]').forEach((select) => {
+            select.value = state.user.id;
+            select.setAttribute('disabled', 'disabled');
+          });
+        }
+      });
 
       fillScheduleBlockPhysioSelect();
       configureAppointmentFormForRole();
     }
+    state.usersLoaded = true;
     return;
   }
 
-  const { users } = await request('/users');
+  const { users } = await request('/users', { signal });
   state.users = users;
   state.patients = users.filter((user) => user.role === 'paciente');
   state.physiotherapists = users.filter((user) => user.role === 'fisioterapeuta');
@@ -346,6 +388,7 @@ const loadUsers = async () => {
   fillScheduleBlockPhysioSelect();
   configureAppointmentFormForRole();
   renderUsers(users);
+  state.usersLoaded = true;
 };
 
 const readAppointmentForm = (form) => {
@@ -380,65 +423,76 @@ const readAppointmentForm = (form) => {
 
 const getAvailabilityRange = () => {
   const start = new Date();
-  start.setHours(0, 0, 0, 0);
+  const formatDateLocal = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const startStr = formatDateLocal(start);
   const end = new Date(start);
   end.setDate(end.getDate() + 20);
-  return { start: start.toISOString(), end: end.toISOString() };
+  const endStr = formatDateLocal(end);
+  return { start: startStr, end: endStr };
 };
 
-const loadAvailability = async () => {
+const loadAvailability = async (signal = null) => {
   const form = document.querySelector('#appointmentForm');
-  const panel = document.querySelector('#availabilityPanel');
   const physiotherapistId = form?.elements.physiotherapistId?.value;
 
-  if (!panel || !physiotherapistId) {
-    if (panel) panel.innerHTML = '';
+  if (!availabilityPanel || !physiotherapistId) {
+    if (availabilityPanel) {
+      scheduleUpdate(() => {
+        availabilityPanel.innerHTML = '';
+      });
+    }
     return;
   }
 
   const { start, end } = getAvailabilityRange();
   const query = new URLSearchParams({ physiotherapistId, start, end });
-  const { days } = await request(`/availability?${query.toString()}`);
+  const { days } = await request(`/availability?${query.toString()}`, { signal });
   state.availability = days;
   renderAvailability(days);
 };
 
 const renderAvailability = (days) => {
-  const panel = document.querySelector('#availabilityPanel');
-  if (!panel) return;
+  if (!availabilityPanel) return;
 
-  panel.innerHTML = `
-    <header class="availability-header">
-      <p class="eyebrow">Disponibilidad real</p>
-      <h3>Elige un hueco disponible</h3>
-      <small>Los dias no laborables, bloqueados o completos no se pueden reservar.</small>
-    </header>
-    <section class="availability-days">
-      ${days
-        .map(
-          (day) => `
-            <article class="availability-day ${day.status}">
-              <header>
-                <strong>${new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: '2-digit', month: 'short' }).format(parseDateOnly(day.date))}</strong>
-                <span>${escapeHtml(day.status === 'available' ? `${day.slots.length} huecos` : day.reason || '')}</span>
-              </header>
-              ${
-                day.slots.length
-                  ? `<section class="availability-slots">${day.slots
-                      .slice(0, 6)
-                      .map(
-                        (slot) =>
-                          `<button class="mini-action" type="button" data-slot-start="${escapeAttr(slot.startsAt)}" data-slot-end="${escapeAttr(slot.endsAt)}">${escapeHtml(slot.label)}</button>`
-                      )
-                      .join('')}</section>`
-                  : ''
-              }
-            </article>
-          `
-        )
-        .join('')}
-    </section>
-  `;
+  scheduleUpdate(() => {
+    availabilityPanel.innerHTML = `
+      <header class="availability-header">
+        <p class="eyebrow">Disponibilidad real</p>
+        <h3>Elige un hueco disponible</h3>
+        <small>Los dias no laborables, bloqueados o completos no se pueden reservar.</small>
+      </header>
+      <section class="availability-days">
+        ${days
+          .map(
+            (day, dayIndex) => `
+              <article class="availability-day ${day.status}" style="--stagger: ${dayIndex}">
+                <header>
+                  <strong>${new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: '2-digit', month: 'short' }).format(parseDateOnly(day.date))}</strong>
+                  <span>${escapeHtml(day.status === 'available' ? `${day.slots.length} huecos` : day.reason || '')}</span>
+                </header>
+                ${
+                  day.slots.length
+                    ? `<section class="availability-slots">${day.slots
+                        .slice(0, 6)
+                        .map(
+                          (slot) =>
+                            `<button class="mini-action" type="button" data-slot-start="${escapeAttr(slot.startsAt)}" data-slot-end="${escapeAttr(slot.endsAt)}">${escapeHtml(slot.label)}</button>`
+                        )
+                        .join('')}</section>`
+                    : ''
+                }
+              </article>
+            `
+          )
+          .join('')}
+      </section>
+    `;
+  });
 };
 
 const renderScheduleBlocks = () => {
@@ -452,36 +506,38 @@ const renderScheduleBlocks = () => {
     return;
   }
 
-  target.innerHTML = upcoming
-    .map(
-      (block) => `
-        <article class="record-card">
-          <header>
-            <h3>${new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' }).format(parseDateOnly(block.date))}</h3>
-            <span class="status-badge pending">No laborable</span>
-          </header>
-          <small>${escapeHtml(block.physiotherapist?.name || 'Toda la clinica')}</small>
-          <p>${escapeHtml(block.reason)}</p>
-          <section class="record-actions">
-            <button class="mini-action" type="button" data-schedule-block-delete="${escapeAttr(block.id)}">Quitar bloqueo</button>
-          </section>
-        </article>
-      `
-    )
-    .join('');
+  scheduleUpdate(() => {
+    target.innerHTML = upcoming
+      .map(
+        (block, index) => `
+          <article class="record-card" style="--stagger: ${index}">
+            <header>
+              <h3>${new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' }).format(parseDateOnly(block.date))}</h3>
+              <span class="status-badge pending">No laborable</span>
+            </header>
+            <small>${escapeHtml(block.physiotherapist?.name || 'Toda la clinica')}</small>
+            <p>${escapeHtml(block.reason)}</p>
+            <section class="record-actions">
+              <button class="mini-action" type="button" data-schedule-block-delete="${escapeAttr(block.id)}">Quitar bloqueo</button>
+            </section>
+          </article>
+        `
+      )
+      .join('');
+  });
 };
 
-const loadScheduleBlocks = async () => {
+const loadScheduleBlocks = async (signal = null) => {
   if (!['admin', 'fisioterapeuta'].includes(state.user?.role)) return;
-  const { blocks } = await request('/schedule-blocks');
+  const { blocks } = await request('/schedule-blocks', { signal });
   state.scheduleBlocks = blocks;
   rebuildCalendarIndexes();
   renderScheduleBlocks();
 };
 
-const loadStats = async () => {
-  const { stats } = await request('/stats');
-  const cards = [
+const loadStats = async (signal = null) => {
+  const { stats } = await request('/stats', { signal });
+  let cards = [
     ['Usuarios', stats.totalUsers ?? '-', 'fa-users'],
     ['Pacientes activos', stats.activePatients ?? '-', 'fa-hospital-user'],
     ['Citas hoy', stats.appointmentsToday, 'fa-calendar-day'],
@@ -492,97 +548,190 @@ const loadStats = async () => {
     ['Reportes', stats.totalReports, 'fa-notes-medical']
   ];
 
-  document.querySelector('#statsGrid').innerHTML = cards
-    .map(
-      ([label, value, icon]) =>
-        `<article class="stat-card"><i class="fa-solid ${escapeAttr(icon)}" aria-hidden="true"></i><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></article>`
-    )
-    .join('');
+  if (state.user?.role === 'paciente') {
+    cards = cards.filter(([label]) => !['Usuarios', 'Pacientes activos'].includes(label));
+  }
 
-  document.querySelector('#statusBoard').innerHTML =
-    stats.appointmentsByStatus
-      .map((item) => `<article class="status-pill"><strong>${escapeHtml(item.count)}</strong><span>${escapeHtml(statusLabel(item.status))}</span></article>`)
-      .join('') || '<article class="status-pill"><strong>0</strong><span>Sin citas</span></article>';
+  scheduleUpdate(() => {
+    if (statsGrid) {
+      statsGrid.innerHTML = cards
+        .map(
+          ([label, value, icon], index) =>
+            `<article class="stat-card" style="--stagger: ${index}"><i class="fa-solid ${escapeAttr(icon)}" aria-hidden="true"></i><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></article>`
+        )
+        .join('');
+    }
+
+    if (statusBoard) {
+      statusBoard.innerHTML =
+        stats.appointmentsByStatus
+          .map((item) => `<article class="status-pill"><strong>${escapeHtml(item.count)}</strong><span>${escapeHtml(statusLabel(item.status))}</span></article>`)
+          .join('') || '<article class="status-pill"><strong>0</strong><span>Sin citas</span></article>';
+    }
+  });
+};
+
+/**
+ * Parsea el campo `notes` de una cita de Typebot (formato "Clave: Valor\nClave: Valor")
+ * y devuelve un objeto con cada campo como propiedad.
+ */
+const parseIntakeNotes = (notes) => {
+  if (!notes) return {};
+  const result = {};
+  String(notes)
+    .split('\n')
+    .forEach((line) => {
+      const colonIndex = line.indexOf(':');
+      if (colonIndex === -1) return;
+      const key = line.slice(0, colonIndex).trim().toLowerCase();
+      const value = line.slice(colonIndex + 1).trim();
+      if (key && value) result[key] = value;
+    });
+  return result;
+};
+
+/**
+ * Genera el HTML de metadata de una admision Typebot a partir de los campos parseados.
+ * Devuelve un bloque HTML listo para insertar en la tarjeta.
+ */
+const renderIntakeMeta = (notes) => {
+  const d = parseIntakeNotes(notes);
+  if (!d['origen'] || d['origen'] !== 'typebot') return '';
+
+  const priority = d['prioridad inicial'] || 'normal';
+  const priorityLabel = { revision_prioritaria: 'Revision prioritaria', preferente: 'Preferente', normal: 'Normal' }[priority] || priority;
+  const priorityClass = priority === 'revision_prioritaria' ? 'intake-priority--urgent' : priority === 'preferente' ? 'intake-priority--medium' : 'intake-priority--normal';
+
+  const hasRedFlag = d['alertas declaradas'] && !d['alertas declaradas'].toLowerCase().includes('ninguna');
+
+  const field = (icon, label, value) =>
+    value ? `<li class="intake-field"><i class="fa-solid ${escapeAttr(icon)}" aria-hidden="true"></i><span class="intake-field__label">${escapeHtml(label)}</span><span class="intake-field__value">${escapeHtml(value)}</span></li>` : '';
+
+  const rows = [
+    field('fa-comment-medical', 'Motivo', d['motivo']),
+    field('fa-person-dots-from-line', 'Zona afectada', d['zona afectada']),
+    field('fa-face-grimace', 'Dolor', d['dolor']),
+    field('fa-clock-rotate-left', 'Evolucion', d['evolucion']),
+    field('fa-circle-exclamation', 'Urgencia', d['urgencia percibida']),
+    hasRedFlag ? `<li class="intake-field intake-field--alert"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span class="intake-field__label">Alertas</span><span class="intake-field__value">${escapeHtml(d['alertas declaradas'])}</span></li>` : '',
+    field('fa-notes-medical', 'Tratamiento previo', d['tratamiento previo']),
+    field('fa-shield-halved', 'Seguro', d['seguro/financiacion']),
+    field('fa-phone', 'Contacto preferido', d['preferencia de contacto']),
+    field('fa-sun', 'Disponibilidad', d['disponibilidad']),
+    d['fecha preferida'] || d['hora preferida']
+      ? field('fa-calendar-day', 'Franja preferida', [d['fecha preferida'], d['hora preferida']].filter(Boolean).join(' — '))
+      : '',
+  ].filter(Boolean).join('');
+
+  if (!rows) return '';
+
+  return `
+    <section class="intake-meta" aria-label="Datos de admision">
+      <header class="intake-meta__header">
+        <span class="intake-priority ${escapeAttr(priorityClass)}">${escapeHtml(priorityLabel)}</span>
+        <span class="intake-meta__label">Admision Typebot</span>
+      </header>
+      <ul class="intake-fields">${rows}</ul>
+    </section>
+  `;
 };
 
 const renderAppointments = (appointments) => {
-  const target = document.querySelector('#appointmentsList');
+  if (!appointmentsList) return;
   if (!appointments.length) {
-    renderEmpty(target, 'Sin citas');
+    renderEmpty(appointmentsList, 'Sin citas');
     renderAssistantIntakes([]);
     return;
   }
 
-  target.innerHTML = appointments
-    .map(
-      (appointment) => `
-        <article class="record-card">
-          <header>
-            <h3>${escapeHtml(appointment.title)}</h3>
-            <span class="status-badge ${escapeAttr(appointment.status)}">${escapeHtml(statusLabel(appointment.status))}</span>
-          </header>
-          <small>${formatDate(appointment.startsAt)} - ${formatDate(appointment.endsAt)}</small>
-          <small>Paciente: ${escapeHtml(appointment.patient?.name || 'Sin paciente')}</small>
-          <small>Fisio: ${escapeHtml(appointment.physiotherapist?.name || 'Sin fisio')}</small>
-          <p>${escapeHtml(appointment.notes || appointment.treatmentType || '')}</p>
-          <section class="record-actions">
-            ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:completed">Completar</button>` : ''}
-            ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:validated">Validar</button>` : ''}
-            ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:cancelled">Cancelar</button>` : ''}
-          </section>
-        </article>
-      `
-    )
-    .join('');
+  scheduleUpdate(() => {
+    appointmentsList.innerHTML = appointments
+      .map(
+        (appointment, index) => {
+          const isTypebot = String(appointment.title || '').toLowerCase().includes('solicitud typebot') ||
+            String(appointment.notes || '').toLowerCase().startsWith('origen: typebot');
+          const intakeMeta = isTypebot ? renderIntakeMeta(appointment.notes) : '';
+          return `
+            <article class="record-card${isTypebot ? ' record-card--typebot' : ''}" style="--stagger: ${index}">
+              <header>
+                <h3>${escapeHtml(appointment.title)}</h3>
+                <span class="status-badge ${escapeAttr(appointment.status)}">${escapeHtml(statusLabel(appointment.status))}</span>
+              </header>
+              <small>${formatDate(appointment.startsAt)} - ${formatDate(appointment.endsAt)}</small>
+              <small>Paciente: ${escapeHtml(appointment.patient?.name || 'Sin paciente')}</small>
+              <small>Fisio: ${escapeHtml(appointment.physiotherapist?.name || 'Sin fisio')}</small>
+              ${intakeMeta || `<p>${escapeHtml(appointment.notes || appointment.treatmentType || '')}</p>`}
+              <section class="record-actions">
+                ${['admin', 'fisioterapeuta'].includes(state.user.role) && appointment.status === 'pending' ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:scheduled">Aceptar</button>` : ''}
+                ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:completed">Completar</button>` : ''}
+                ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:validated">Validar</button>` : ''}
+                ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:cancelled">Cancelar</button>` : ''}
+              </section>
+            </article>
+          `;
+        }
+      )
+      .join('');
+  });
 
   renderAssistantIntakes(appointments);
 };
 
 const renderAssistantIntakes = (appointments) => {
-  const target = document.querySelector('#assistantIntakeList');
-  if (!target) return;
+  if (!assistantIntakeList) return;
 
   const intakes = appointments.filter((appointment) => {
     const title = String(appointment.title || '').toLowerCase();
     const notes = String(appointment.notes || '').toLowerCase();
-    return title.includes('solicitud typebot') || notes.includes('origen: typebot');
+    return title.includes('solicitud typebot') || notes.startsWith('origen: typebot');
   });
 
   if (!intakes.length) {
-    renderEmpty(target, 'Sin admisiones Typebot');
+    renderEmpty(assistantIntakeList, 'Sin admisiones Typebot');
     return;
   }
 
-  target.innerHTML = intakes
-    .slice(0, 6)
-    .map(
-      (appointment) => `
-        <article class="record-card">
-          <header>
-            <h3>${escapeHtml(appointment.title)}</h3>
-            <span class="status-badge ${escapeAttr(appointment.status)}">${escapeHtml(statusLabel(appointment.status))}</span>
-          </header>
-          <small>Paciente: ${escapeHtml(appointment.patient?.name || 'Sin paciente')}</small>
-          <small>Fisio: ${escapeHtml(appointment.physiotherapist?.name || 'Sin fisioterapeuta')}</small>
-          <small>Fecha: ${escapeHtml(formatDate(appointment.startsAt))}</small>
-          <p>${escapeHtml((appointment.notes || '').split('\n').slice(0, 4).join(' | '))}</p>
-        </article>
-      `
-    )
-    .join('');
+  scheduleUpdate(() => {
+    assistantIntakeList.innerHTML = intakes
+      .map(
+        (appointment, index) => {
+          const meta = renderIntakeMeta(appointment.notes);
+          const canAct = ['admin', 'fisioterapeuta'].includes(state.user.role);
+          return `
+            <article class="record-card record-card--typebot" style="--stagger: ${index}">
+              <header>
+                <h3>${escapeHtml(appointment.title)}</h3>
+                <span class="status-badge ${escapeAttr(appointment.status)}">${escapeHtml(statusLabel(appointment.status))}</span>
+              </header>
+              <small>Paciente: <strong>${escapeHtml(appointment.patient?.name || 'Sin paciente')}</strong></small>
+              <small>Fisio: ${escapeHtml(appointment.physiotherapist?.name || 'Sin fisioterapeuta')}</small>
+              <small>Cita propuesta: ${escapeHtml(formatDate(appointment.startsAt))}</small>
+              ${meta}
+              <section class="record-actions">
+                ${canAct && appointment.status === 'pending'
+                  ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:scheduled">Aceptar y programar</button>`
+                  : ''
+                }
+                ${canAct && ['pending', 'scheduled'].includes(appointment.status)
+                  ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:cancelled">Cancelar</button>`
+                  : ''
+                }
+              </section>
+            </article>
+          `;
+        }
+      )
+      .join('');
+  });
 };
 
-const loadAppointments = async () => {
-  const { appointments } = await request('/appointments');
+const loadAppointments = async (signal = null) => {
+  const { appointments } = await request('/appointments', { signal });
   state.appointments = appointments;
   rebuildCalendarIndexes();
   renderAppointments(appointments);
   renderCalendar();
 };
-
-document.querySelector('#appointmentForm select[name="physiotherapistId"]').addEventListener('change', () => {
-  loadAvailability().catch((error) => setFeedback(error.message, 'error'));
-});
 
 const sameDay = (left, right) =>
   left.getFullYear() === right.getFullYear() &&
@@ -596,10 +745,7 @@ const getMonthStart = (date) => {
 };
 
 const renderCalendar = () => {
-  const grid = document.querySelector('#calendarGrid');
-  const calendarTitle = document.querySelector('#calendarTitle');
-
-  if (!grid || !calendarTitle) {
+  if (!calendarGrid || !calendarTitle) {
     return;
   }
 
@@ -609,151 +755,275 @@ const renderCalendar = () => {
   const monthName = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(state.calendarDate);
   const weekDays = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
 
-  calendarTitle.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+  scheduleUpdate(() => {
+    calendarTitle.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
-  const headers = weekDays.map((day) => `<header class="calendar-weekday">${day}</header>`).join('');
-  const days = [];
+    const headers = weekDays.map((day) => `<header class="calendar-weekday">${day}</header>`).join('');
+    const days = [];
 
-  for (let index = 0; index < 42; index += 1) {
-    const date = new Date(monthStart);
-    date.setDate(monthStart.getDate() + index);
-    const dateKey = formatDateOnlyLocal(date);
-    const appointments = state.appointmentsByDate.get(dateKey) || [];
-    const scheduleBlock = state.scheduleBlockByDate.get(dateKey);
-    const muted = date.getMonth() !== visibleMonth ? 'muted-day' : '';
-    const current = sameDay(date, today) ? 'today-day' : '';
-    const blocked = scheduleBlock || [0, 6].includes(date.getDay()) ? 'blocked-day' : '';
+    for (let index = 0; index < 42; index += 1) {
+      const date = new Date(monthStart);
+      date.setDate(monthStart.getDate() + index);
+      const dateKey = formatDateOnlyLocal(date);
+      const appointments = state.appointmentsByDate.get(dateKey) || [];
+      const scheduleBlock = state.scheduleBlockByDate.get(dateKey);
+      const muted = date.getMonth() !== visibleMonth ? 'muted-day' : '';
+      const current = sameDay(date, today) ? 'today-day' : '';
+      const blocked = scheduleBlock || [0, 6].includes(date.getDay()) ? 'blocked-day' : '';
 
-    days.push(`
-      <article class="calendar-day ${muted} ${current} ${blocked}">
-        <header>
-          <strong>${date.getDate()}</strong>
-          ${appointments.length ? `<span>${escapeHtml(appointments.length)}</span>` : ''}
-        </header>
-        <section class="calendar-events">
-          ${appointments
-            .slice(0, 3)
-            .map(
-              (appointment) => `
-                <article class="calendar-event ${escapeAttr(appointment.status)}">
-                  <strong>${new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' }).format(new Date(appointment.startsAt))}</strong>
-                  <span>${escapeHtml(appointment.title)}</span>
-                </article>
-              `
-            )
-            .join('')}
-          ${appointments.length > 3 ? `<small>+${escapeHtml(appointments.length - 3)} mas</small>` : ''}
-          ${scheduleBlock ? `<small class="calendar-block-label">${escapeHtml(scheduleBlock.reason)}</small>` : ''}
-        </section>
-      </article>
-    `);
-  }
+      days.push(`
+        <article class="calendar-day ${muted} ${current} ${blocked}">
+          <header>
+            <strong>${date.getDate()}</strong>
+            ${appointments.length ? `<span>${escapeHtml(appointments.length)}</span>` : ''}
+          </header>
+          <section class="calendar-events">
+            ${appointments
+              .slice(0, 3)
+              .map(
+                (appointment) => `
+                  <article class="calendar-event ${escapeAttr(appointment.status)}">
+                    <strong>${new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' }).format(new Date(appointment.startsAt))}</strong>
+                    <span>${escapeHtml(appointment.title)}</span>
+                  </article>
+                `
+              )
+              .join('')}
+            ${appointments.length > 3 ? `<small>+${escapeHtml(appointments.length - 3)} mas</small>` : ''}
+            ${scheduleBlock ? `<small class="calendar-block-label">${escapeHtml(scheduleBlock.reason)}</small>` : ''}
+          </section>
+        </article>
+      `);
+    }
 
-  grid.innerHTML = headers + days.join('');
+    calendarGrid.innerHTML = headers + days.join('');
+  });
 };
 
 const renderReports = (reports) => {
-  const target = document.querySelector('#reportsList');
+  if (!reportsList) return;
   if (!reports.length) {
-    renderEmpty(target, 'Sin reportes');
+    renderEmpty(reportsList, 'Sin reportes');
     return;
   }
 
-  target.innerHTML = reports
-    .map(
-      (report) => `
-        <article class="record-card">
-          <header>
-            <h3>${escapeHtml(report.title)}</h3>
-            <span class="status-badge">${escapeHtml(reportTypeLabel(report.type))}</span>
-          </header>
-          <small>Paciente: ${escapeHtml(report.patient?.name || 'Paciente')}</small>
-          <small>Autor: ${escapeHtml(report.author?.name || 'Clinica')}</small>
-          <p>${escapeHtml(report.content)}</p>
-        </article>
-      `
-    )
-    .join('');
+  scheduleUpdate(() => {
+    reportsList.innerHTML = reports
+      .map(
+        (report, index) => `
+          <article class="record-card" style="--stagger: ${index}">
+            <header>
+              <h3>${escapeHtml(report.title)}</h3>
+              <span class="status-badge">${escapeHtml(reportTypeLabel(report.type))}</span>
+            </header>
+            <small>Paciente: ${escapeHtml(report.patient?.name || 'Paciente')}</small>
+            <small>Autor: ${escapeHtml(report.author?.name || 'Clinica')}</small>
+            <p>${escapeHtml(report.content)}</p>
+          </article>
+        `
+      )
+      .join('');
+  });
 };
 
-const loadReports = async () => {
-  const { reports } = await request('/reports');
+const loadReports = async (signal = null) => {
+  const { reports } = await request('/reports', { signal });
   renderReports(reports);
 };
 
 const renderConsents = (consents) => {
-  const target = document.querySelector('#consentsList');
+  if (!consentsList) return;
   if (!consents.length) {
-    renderEmpty(target, 'Sin consentimientos');
+    renderEmpty(consentsList, 'Sin consentimientos');
     return;
   }
 
-  target.innerHTML = consents
-    .map(
-      (consent) => `
-        <article class="record-card">
-          <header>
-            <h3>${escapeHtml(consent.title)}</h3>
-            <span class="status-badge ${escapeAttr(consent.status)}">${escapeHtml(statusLabel(consent.status))}</span>
-          </header>
-          <small>Paciente: ${escapeHtml(consent.patient?.name || 'Paciente')}</small>
-          <p>${escapeHtml(consent.body)}</p>
-          <section class="record-actions">
-            ${state.user.role === 'paciente' && consent.status === 'pending' ? `<button class="mini-action" type="button" data-consent-sign="${escapeAttr(consent.id)}">Firmar</button>` : ''}
-            ${consent.status !== 'revoked' ? `<button class="mini-action" type="button" data-consent-revoke="${escapeAttr(consent.id)}">Revocar</button>` : ''}
-          </section>
-        </article>
-      `
-    )
-    .join('');
+  scheduleUpdate(() => {
+    consentsList.innerHTML = consents
+      .map(
+        (consent, index) => `
+          <article class="record-card" style="--stagger: ${index}">
+            <header>
+              <h3>${escapeHtml(consent.title)}</h3>
+              <span class="status-badge ${escapeAttr(consent.status)}">${escapeHtml(statusLabel(consent.status))}</span>
+            </header>
+            <small>Paciente: ${escapeHtml(consent.patient?.name || 'Paciente')}</small>
+            <p>${escapeHtml(consent.body)}</p>
+            <section class="record-actions">
+              ${state.user.role === 'paciente' && consent.status === 'pending' ? `<button class="mini-action" type="button" data-consent-sign="${escapeAttr(consent.id)}">Firmar</button>` : ''}
+              ${consent.status !== 'revoked' ? `<button class="mini-action" type="button" data-consent-revoke="${escapeAttr(consent.id)}">Revocar</button>` : ''}
+            </section>
+          </article>
+        `
+      )
+      .join('');
+  });
 };
 
-const loadConsents = async () => {
-  const { consents } = await request('/consents');
+const loadConsents = async (signal = null) => {
+  const { consents } = await request('/consents', { signal });
   renderConsents(consents);
 };
 
 const renderUsers = (users) => {
-  const target = document.querySelector('#usersList');
+  if (!usersList) return;
   if (!users.length) {
-    renderEmpty(target, 'Sin usuarios');
+    renderEmpty(usersList, 'Sin usuarios');
     return;
   }
 
-  target.innerHTML = users
-    .map(
-      (user) => `
-        <article class="record-card">
-          <header>
-            <h3>${escapeHtml(user.name)}</h3>
-            <span class="status-badge">${escapeHtml(roleLabel(user.role))}</span>
-          </header>
-          <small>${escapeHtml(user.email)}</small>
-          <small>${escapeHtml(user.phone || 'Sin telefono')}</small>
-          <section class="record-actions">
-            <button class="mini-action" type="button" data-user-disable="${escapeAttr(user.id)}">Desactivar</button>
-          </section>
-        </article>
-      `
-    )
-    .join('');
+  scheduleUpdate(() => {
+    usersList.innerHTML = users
+      .map(
+        (user, index) => `
+          <article class="record-card" style="--stagger: ${index}">
+            <header>
+              <h3>${escapeHtml(user.name)}</h3>
+              <span class="status-badge">${escapeHtml(roleLabel(user.role))}</span>
+            </header>
+            <small>${escapeHtml(user.email)}</small>
+            <small>${escapeHtml(user.phone || 'Sin telefono')}</small>
+            <section class="record-actions">
+              <button class="mini-action" type="button" data-user-disable="${escapeAttr(user.id)}">Desactivar</button>
+            </section>
+          </article>
+        `
+      )
+      .join('');
+  });
 };
 
 const refreshAll = async () => {
   setFeedback('Actualizando datos...');
-  await loadMe();
-  await loadUsers();
-  const tasks = await Promise.allSettled([loadStats(), loadAppointments(), loadReports(), loadConsents(), loadScheduleBlocks()]);
-  const failedTask = tasks.find((task) => task.status === 'rejected');
-  renderCalendar();
-  await loadAvailability();
-  if (failedTask) {
-    throw failedTask.reason;
+  const activeSectionName = document.querySelector('.rail-link.active')?.dataset.section || 'overview';
+  try {
+    await loadMe();
+    await ensureSectionData(activeSectionName, true);
+    setFeedback('Datos sincronizados.', 'success');
+  } catch (error) {
+    if (error.name === 'AbortError') return;
+    setFeedback(error.message, 'error');
   }
-  setFeedback('Datos sincronizados.', 'success');
 };
 
-const activateSection = (sectionName) => {
+const showSectionSkeletons = (sectionName) => {
+  scheduleUpdate(() => {
+    if (sectionName === 'overview') {
+      if (statsGrid) {
+        statsGrid.innerHTML = Array(4).fill(0).map(() => `
+          <article class="skeleton-stat">
+            <div class="skeleton" style="width: 42px; height: 42px; border-radius: var(--radius);"></div>
+            <div class="skeleton skeleton-text skeleton-text--value"></div>
+            <div class="skeleton skeleton-text skeleton-text--label"></div>
+          </article>
+        `).join('');
+      }
+      if (statusBoard) {
+        statusBoard.innerHTML = Array(4).fill(0).map(() => `
+          <article class="status-pill skeleton" style="min-height: 48px; width: 100px;">
+            <div class="skeleton-text" style="width: 40%; height: 16px; margin: 4px auto 0;"></div>
+            <div class="skeleton-text" style="width: 70%; height: 10px; margin: 4px auto 0;"></div>
+          </article>
+        `).join('');
+      }
+    } else if (sectionName === 'appointments') {
+      if (appointmentsList) {
+        appointmentsList.innerHTML = Array(3).fill(0).map(() => `
+          <article class="skeleton-card">
+            <div class="skeleton skeleton-text skeleton-text--title"></div>
+            <div class="skeleton skeleton-text skeleton-text--short"></div>
+            <div class="skeleton skeleton-text skeleton-text--medium"></div>
+            <div class="skeleton skeleton-text"></div>
+          </article>
+        `).join('');
+      }
+    } else if (sectionName === 'reports') {
+      if (reportsList) {
+        reportsList.innerHTML = Array(3).fill(0).map(() => `
+          <article class="skeleton-card">
+            <div class="skeleton skeleton-text skeleton-text--title"></div>
+            <div class="skeleton skeleton-text skeleton-text--short"></div>
+            <div class="skeleton skeleton-text"></div>
+          </article>
+        `).join('');
+      }
+    } else if (sectionName === 'consents') {
+      if (consentsList) {
+        consentsList.innerHTML = Array(3).fill(0).map(() => `
+          <article class="skeleton-card">
+            <div class="skeleton skeleton-text skeleton-text--title"></div>
+            <div class="skeleton skeleton-text skeleton-text--short"></div>
+            <div class="skeleton skeleton-text"></div>
+          </article>
+        `).join('');
+      }
+    } else if (sectionName === 'users') {
+      if (usersList) {
+        usersList.innerHTML = Array(3).fill(0).map(() => `
+          <article class="skeleton-card">
+            <div class="skeleton skeleton-text skeleton-text--title"></div>
+            <div class="skeleton skeleton-text skeleton-text--short"></div>
+            <div class="skeleton skeleton-text"></div>
+          </article>
+        `).join('');
+      }
+    } else if (sectionName === 'assistant') {
+      if (assistantIntakeList) {
+        assistantIntakeList.innerHTML = Array(2).fill(0).map(() => `
+          <article class="skeleton-card">
+            <div class="skeleton skeleton-text skeleton-text--title"></div>
+            <div class="skeleton skeleton-text skeleton-text--short"></div>
+            <div class="skeleton skeleton-text" style="height: 100px;"></div>
+          </article>
+        `).join('');
+      }
+    }
+  });
+};
+
+const ensureSectionData = async (sectionName, force = false) => {
+  if (loadedSections.has(sectionName) && !force) return;
+
+  if (activeAbortController) {
+    activeAbortController.abort();
+  }
+  activeAbortController = new AbortController();
+  const signal = activeAbortController.signal;
+
+  try {
+    if (!loadedSections.has(sectionName)) {
+      showSectionSkeletons(sectionName);
+    }
+
+    if (sectionName === 'overview') {
+      await loadStats(signal);
+    } else if (sectionName === 'appointments') {
+      await loadUsers(false, signal);
+      await loadAppointments(signal);
+      await loadAvailability(signal);
+    } else if (sectionName === 'calendar') {
+      await loadAppointments(signal);
+      await loadScheduleBlocks(signal);
+    } else if (sectionName === 'reports') {
+      await loadUsers(false, signal);
+      await loadReports(signal);
+    } else if (sectionName === 'consents') {
+      await loadUsers(false, signal);
+      await loadConsents(signal);
+    } else if (sectionName === 'users') {
+      await loadUsers(true, signal);
+    } else if (sectionName === 'assistant') {
+      await loadAppointments(signal);
+    }
+
+    loadedSections.add(sectionName);
+  } catch (error) {
+    if (error.name === 'AbortError') return;
+    throw error;
+  }
+};
+
+const activateSection = async (sectionName) => {
   const button = document.querySelector(`[data-section="${sectionName}"]`);
   if (!button) return;
 
@@ -761,6 +1031,12 @@ const activateSection = (sectionName) => {
   sections.forEach((section) => section.classList.toggle('active', section.id === `${sectionName}Section`));
   title.textContent = button.textContent.trim();
   setFeedback('');
+
+  try {
+    await ensureSectionData(sectionName);
+  } catch (error) {
+    setFeedback(error.message, 'error');
+  }
 };
 
 navButtons.forEach((button) => {
@@ -1219,5 +1495,14 @@ const buildAssistant = () => {
   });
 };
 
-buildAssistant();
-refreshAll().catch((error) => setFeedback(error.message, 'error'));
+const initDashboard = async () => {
+  try {
+    await loadMe();
+    buildAssistant();
+    await ensureSectionData('overview');
+  } catch (error) {
+    if (error.name === 'AbortError') return;
+    setFeedback(error.message, 'error');
+  }
+};
+initDashboard();

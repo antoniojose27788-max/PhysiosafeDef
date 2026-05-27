@@ -3,14 +3,67 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="PhysioSafe, gestion segura para clinicas de fisioterapia.">
-    <title>PhysioSafe | Acceso seguro</title>
+
+    <!-- ── SEO primario ─────────────────────────────────────────── -->
+    <title>PhysioSafe | Clínica de Fisioterapia — Gestión digital segura</title>
+    <meta name="description" content="PhysioSafe: plataforma digital para clínicas de fisioterapia. Gestión de citas, consentimientos, reportes clínicos y seguimiento del paciente en un entorno seguro y coordinado.">
+    <meta name="keywords" content="fisioterapia, clínica fisioterapia, rehabilitación, gestión clínica, citas fisioterapia, PhysioSafe, terapia manual, ejercicio terapéutico">
+    <meta name="author" content="PhysioSafe">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://physiosafe.es/">
+    <meta name="theme-color" content="#0c8f88">
+
+    <!-- ── Open Graph (redes sociales) ─────────────────────────── -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="PhysioSafe">
+    <meta property="og:title" content="PhysioSafe | Fisioterapia segura y coordinada">
+    <meta property="og:description" content="Plataforma digital para clínicas de fisioterapia. Gestión de citas, consentimientos, admisión asistida y seguimiento clínico en un solo portal seguro.">
+    <meta property="og:url" content="https://physiosafe.es/">
+    <meta property="og:image" content="https://physiosafe.es/images/og-cover.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale" content="es_ES">
+
+    <!-- ── Twitter Card ─────────────────────────────────────────── -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="PhysioSafe | Fisioterapia segura y coordinada">
+    <meta name="twitter:description" content="Plataforma digital para clínicas de fisioterapia. Citas, consentimientos y seguimiento clínico en un portal seguro.">
+    <meta name="twitter:image" content="https://physiosafe.es/images/og-cover.jpg">
+
+    <!-- ── Rendimiento — DNS prefetch y preconnect ──────────────── -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- ── Fuentes y librerías ──────────────────────────────────── -->
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-    <link href="/style.css?v=20260525-responsive-overlay2" rel="stylesheet">
+    <link href="/style.css?v=20260527-perf" rel="stylesheet">
+
+    <!-- ── JSON-LD Structured Data ─────────────────────────────── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "MedicalClinic",
+      "name": "PhysioSafe",
+      "description": "Clínica de fisioterapia con gestión digital avanzada: citas, consentimientos, seguimiento clínico y admisión asistida en un portal seguro.",
+      "url": "https://physiosafe.es",
+      "logo": "https://physiosafe.es/images/logo-login.png",
+      "image": "https://physiosafe.es/images/foto7.jpg",
+      "medicalSpecialty": "Physiotherapy",
+      "availableService": [
+        { "@type": "MedicalTherapy", "name": "Rehabilitación funcional" },
+        { "@type": "MedicalTherapy", "name": "Terapia manual" },
+        { "@type": "MedicalTherapy", "name": "Ejercicio terapéutico" },
+        { "@type": "MedicalTherapy", "name": "Readaptación deportiva" }
+      ],
+      "inLanguage": "es"
+    }
+    </script>
+
   </head>
   <body class="auth-surface">
     <header class="auth-header container">
@@ -43,7 +96,7 @@
               <i class="fa-solid fa-stethoscope" aria-hidden="true"></i>
               Ver servicios
             </a>
-            <a class="btn primary-action header-primary-action" href="#access">
+            <a class="btn primary-action header-primary-action" href="#access-card">
               <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
               Acceder
             </a>
@@ -83,7 +136,7 @@
             <i class="fa-solid fa-stethoscope" aria-hidden="true"></i>
             Ver servicios
           </a>
-          <a class="btn primary-action header-primary-action" href="#access">
+          <a class="btn primary-action header-primary-action" href="#access-card">
             <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
             Acceder
           </a>
@@ -153,7 +206,7 @@
 
             <section class="col-12 col-lg-6">
               <article class="hero-media-card">
-                <img src="/images/foto7.jpg" alt="Sesion de fisioterapia con bandas elasticas">
+                <img src="/images/foto7.jpg" alt="Sesion de fisioterapia con bandas elasticas" fetchpriority="high">
                 <section class="hero-media-overlay" aria-label="Resumen clinico">
                   <article>
                     <strong>+360</strong>
@@ -248,7 +301,7 @@
         </header>
         <section class="service-grid" aria-label="Servicios destacados">
           <article class="service-card">
-            <img src="/images/foto1.jpg" alt="Tratamiento de movilidad de rodilla">
+            <img src="/images/foto1.jpg" alt="Tratamiento de movilidad de rodilla" loading="lazy">
             <section>
               <span class="service-icon"><i class="fa-solid fa-person-walking" aria-hidden="true"></i></span>
               <h3>Rehabilitacion funcional</h3>
@@ -256,7 +309,7 @@
             </section>
           </article>
           <article class="service-card">
-            <img src="/images/foto2.jpg" alt="Terapia manual de espalda">
+            <img src="/images/foto2.jpg" alt="Terapia manual de espalda" loading="lazy">
             <section>
               <span class="service-icon"><i class="fa-solid fa-hands-holding" aria-hidden="true"></i></span>
               <h3>Terapia manual</h3>
@@ -264,7 +317,7 @@
             </section>
           </article>
           <article class="service-card">
-            <img src="/images/foto4.jpg" alt="Ejercicio terapeutico con pelota">
+            <img src="/images/foto4.jpg" alt="Ejercicio terapeutico con pelota" loading="lazy">
             <section>
               <span class="service-icon"><i class="fa-solid fa-dumbbell" aria-hidden="true"></i></span>
               <h3>Ejercicio terapeutico</h3>
@@ -272,7 +325,7 @@
             </section>
           </article>
           <article class="service-card">
-            <img src="/images/foto5.jpg" alt="Tratamiento con foam roller">
+            <img src="/images/foto5.jpg" alt="Tratamiento con foam roller" loading="lazy">
             <section>
               <span class="service-icon"><i class="fa-solid fa-wave-square" aria-hidden="true"></i></span>
               <h3>Readaptacion deportiva</h3>
@@ -280,7 +333,7 @@
             </section>
           </article>
           <article class="service-card">
-            <img src="/images/foto6.jpg" alt="Valoracion fisioterapeutica">
+            <img src="/images/foto6.jpg" alt="Valoracion fisioterapeutica" loading="lazy">
             <section>
               <span class="service-icon"><i class="fa-solid fa-user-doctor" aria-hidden="true"></i></span>
               <h3>Valoracion y diagnostico</h3>
@@ -288,7 +341,7 @@
             </section>
           </article>
           <article class="service-card">
-            <img src="/images/foto7.jpg" alt="Trabajo de fuerza con banda elastica">
+            <img src="/images/foto7.jpg" alt="Trabajo de fuerza con banda elastica" loading="lazy">
             <section>
               <span class="service-icon"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i></span>
               <h3>Prevencion de recaidas</h3>
@@ -322,7 +375,7 @@
             </section>
           </article>
           <article class="clinical-image">
-            <img src="/images/foto6.jpg" alt="Fisioterapeuta realizando una valoracion en camilla">
+            <img src="/images/foto6.jpg" alt="Fisioterapeuta realizando una valoracion en camilla" loading="lazy">
           </article>
         </section>
       </section>
@@ -384,7 +437,7 @@
         <article class="footer-module">
           <span>Navegacion</span>
           <strong>Accesos rapidos</strong>
-          <small><a href="#access">Entrar o crear cuenta</a></small>
+          <small><a href="#access-card">Entrar o crear cuenta</a></small>
           <small><a href="#services">Ver servicios de fisioterapia</a></small>
           <small><a href="#method">Conocer el metodo PhysioSafe</a></small>
           <small><a href="#experience">Explorar la experiencia digital</a></small>
@@ -408,12 +461,12 @@
         <small>PhysioSafe · fisioterapia conectada, datos protegidos y continuidad asistencial.</small>
         <section class="footer-bottom-actions" aria-label="Acciones finales">
           <a href="#services">Ver servicios</a>
-          <a href="#access">Acceder al portal</a>
+          <a href="#access-card">Acceder al portal</a>
         </section>
       </section>
     </footer>
 
-    <script src="/session.js?v=20260525-finalqa1"></script>
-    <script src="/app.js?v=20260525-finalqa1"></script>
+    <script src="/session.js?v=20260527-perf"></script>
+    <script src="/app.js?v=20260527-perf"></script>
   </body>
 </html>

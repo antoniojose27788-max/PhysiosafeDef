@@ -42,7 +42,7 @@ PhysioSafe queda operativo como plataforma de gestion para clinica de fisioterap
 ### Typebot
 
 - Se mantiene el intake protegido por secreto.
-- La admision exige fisioterapeuta explicito.
+- La admision soporta reasignacion automatica a fisioterapeuta activo o administrador de la clinica si no se indica o no es valido.
 - El flujo sigue pensado para crear o actualizar paciente y generar cita pendiente coherente.
 - Las solicitudes de admision quedan visibles como citas pendientes vinculadas a paciente, fisioterapeuta y calendario.
 

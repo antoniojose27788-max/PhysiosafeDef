@@ -426,3 +426,21 @@ const buildAssistant = () => {
 buildAssistant();
 loadSetupStatus();
 initMotionSystem();
+
+const initCursorGlow = () => {
+  if (window.innerWidth >= 992 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    let cursorTimeout;
+    document.addEventListener('pointermove', (event) => {
+      if (cursorTimeout) return;
+      cursorTimeout = setTimeout(() => {
+        cursorTimeout = null;
+      }, 16);
+      
+      requestAnimationFrame(() => {
+        document.body.style.setProperty('--cursor-x', `${event.clientX}px`);
+        document.body.style.setProperty('--cursor-y', `${event.clientY}px`);
+      });
+    }, { passive: true });
+  }
+};
+initCursorGlow();

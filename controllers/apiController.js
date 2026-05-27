@@ -22,16 +22,64 @@ const WORK_START_HOUR = 9;
 const WORK_END_HOUR = 18;
 const SLOT_MINUTES = 60;
 
+const getMadridOffset = (date) => {
+  const tzString = date.toLocaleString('en-US', { timeZone: 'Europe/Madrid', timeZoneName: 'longOffset' });
+  const match = tzString.match(/GMT([-+]\d+):?(\d+)?/);
+  if (!match) return 0;
+  const hours = parseInt(match[1], 10);
+  const minutes = match[2] ? parseInt(match[2], 10) : 0;
+  return hours * 60 + (hours < 0 ? -minutes : minutes);
+};
+
+const getMadridTimeInfo = (dateInput) => {
+  const date = new Date(dateInput);
+  const dayFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Madrid', weekday: 'short' });
+  const dayName = dayFormatter.format(date);
+  const dayOfWeekMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const dayOfWeek = dayOfWeekMap[dayName];
+
+  const timeFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Madrid',
+    hourCycle: 'h23',
+    hour: 'numeric',
+    minute: 'numeric'
+  });
+  const parts = timeFormatter.formatToParts(date);
+  const map = {};
+  parts.forEach(p => { map[p.type] = p.value; });
+
+  return {
+    dayOfWeek,
+    hour: parseInt(map.hour, 10),
+    minute: parseInt(map.minute, 10)
+  };
+};
+
 const toDateOnly = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Madrid',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const parts = formatter.formatToParts(date);
+  const map = {};
+  parts.forEach(p => { map[p.type] = p.value; });
+  return `${map.year}-${map.month}-${map.day}`;
 };
 
-const isWeekend = (date) => [0, 6].includes(date.getDay());
+const createMadridDate = (dateStr, hour, minute = 0) => {
+  const pad = (n) => String(n).padStart(2, '0');
+  const utcDate = new Date(`${dateStr}T${pad(hour)}:${pad(minute)}:00Z`);
+  return new Date(utcDate.getTime() - getMadridOffset(utcDate) * 60000);
+};
+
+const isWeekend = (date) => {
+  const { dayOfWeek } = getMadridTimeInfo(date);
+  return [0, 6].includes(dayOfWeek);
+};
 
 const overlaps = (leftStart, leftEnd, rightStart, rightEnd) => leftStart < rightEnd && leftEnd > rightStart;
 
@@ -168,18 +216,35 @@ const buildIntakeNotes = ({
     .filter(Boolean)
     .join('\n');
 
+const parseStartsAt = (startsAtStr) => {
+  if (!startsAtStr) return null;
+  const str = String(startsAtStr).trim();
+  if (str.includes('Z') || str.match(/[-+]\d{2}:?\d{2}$/)) {
+    return new Date(str);
+  }
+  const delimiter = str.includes('T') ? 'T' : ' ';
+  const [datePart, timePart] = str.split(delimiter);
+  if (datePart && timePart) {
+    const [hour, minute] = timePart.split(':').map(Number);
+    return createMadridDate(datePart, hour, minute);
+  }
+  return new Date(str);
+};
+
 const resolveIntakeSlot = ({ startsAt, endsAt, preferredDate, preferredTime }) => {
   if (startsAt) {
-    const start = new Date(startsAt);
-    const end = endsAt ? new Date(endsAt) : new Date(start);
-    if (!endsAt) end.setMinutes(end.getMinutes() + SLOT_MINUTES);
+    const start = parseStartsAt(startsAt);
+    const end = endsAt ? parseStartsAt(endsAt) : new Date(start.getTime() + SLOT_MINUTES * 60000);
     return { startsAt: start, endsAt: end };
   }
 
   if (preferredDate && preferredTime) {
-    const start = new Date(`${preferredDate}T${preferredTime}`);
-    const end = new Date(start);
-    end.setMinutes(end.getMinutes() + SLOT_MINUTES);
+    const timeStr = String(preferredTime).trim();
+    const parts = timeStr.split(':');
+    const hour = parseInt(parts[0], 10) || 9;
+    const minute = parseInt(parts[1], 10) || 0;
+    const start = createMadridDate(preferredDate, hour, minute);
+    const end = new Date(start.getTime() + SLOT_MINUTES * 60000);
     return { startsAt: start, endsAt: end };
   }
 
@@ -201,6 +266,18 @@ const findIntakePhysiotherapist = async ({ physiotherapistId, physiotherapistEma
     if (physiotherapist) return physiotherapist;
   }
 
+  // Fallback 1: Buscar cualquier fisioterapeuta activo
+  const anyPhysio = await User.findOne({
+    where: { role: 'fisioterapeuta', isActive: true }
+  });
+  if (anyPhysio) return anyPhysio;
+
+  // Fallback 2: Buscar cualquier administrador activo
+  const anyAdmin = await User.findOne({
+    where: { role: 'admin', isActive: true }
+  });
+  if (anyAdmin) return anyAdmin;
+
   return null;
 };
 
@@ -219,18 +296,17 @@ const isSlotFreeForIntake = async ({ startsAt, endsAt, physiotherapistId }) => {
 const findFirstAvailableSlot = async ({ physiotherapistId, preference }) => {
   const startHour = preference === 'afternoon' ? 15 : WORK_START_HOUR;
   const endHour = preference === 'morning' ? 14 : WORK_END_HOUR;
-  const cursor = new Date();
-  cursor.setHours(0, 0, 0, 0);
+  const todayMadridStr = toDateOnly(new Date());
+  const cursor = new Date(todayMadridStr + 'T00:00:00Z');
 
-  for (let dayOffset = 0; dayOffset < 21; dayOffset += 1) {
-    const day = new Date(cursor);
-    day.setDate(cursor.getDate() + dayOffset);
+  for (let dayOffset = 0; dayOffset < 60; dayOffset += 1) {
+    const targetDay = new Date(cursor);
+    targetDay.setUTCDate(cursor.getUTCDate() + dayOffset);
+    const targetDayStr = targetDay.toISOString().slice(0, 10);
 
     for (let hour = startHour; hour < endHour; hour += 1) {
-      const startsAt = new Date(day);
-      startsAt.setHours(hour, 0, 0, 0);
-      const endsAt = new Date(startsAt);
-      endsAt.setMinutes(endsAt.getMinutes() + SLOT_MINUTES);
+      const startsAt = createMadridDate(targetDayStr, hour, 0);
+      const endsAt = new Date(startsAt.getTime() + SLOT_MINUTES * 60000);
 
       if (startsAt <= new Date()) continue;
 
@@ -260,8 +336,8 @@ const getPatientResourceWhereForUser = (user, patientField = 'patientId', ownerF
     return {};
   }
 
-  if (isPhysio(user) && ownerField) {
-    return { [ownerField]: user.id };
+  if (isPhysio(user)) {
+    return {};
   }
 
   return { [patientField]: user.id };
@@ -271,8 +347,8 @@ const findVisibleAppointment = async (id, user) =>
   Appointment.findOne({
     where: { id, ...getAppointmentWhereForUser(user) },
     include: [
-      { model: User, as: 'patient', attributes: ['id', 'name', 'email', 'phone', 'role'] },
-      { model: User, as: 'physiotherapist', attributes: ['id', 'name', 'email', 'phone', 'role'] }
+      { model: User, as: 'patient', attributes: ['id', 'name', 'email', 'phone', 'role'], paranoid: false },
+      { model: User, as: 'physiotherapist', attributes: ['id', 'name', 'email', 'phone', 'role'], paranoid: false }
     ]
   });
 
@@ -308,6 +384,27 @@ const ensureNoAppointmentOverlap = async ({ startsAt, endsAt, physiotherapistId,
   }
 };
 
+const ensureNoPatientOverlap = async ({ startsAt, endsAt, patientId, excludeId, transaction }) => {
+  const overlappingAppointment = await Appointment.findOne({
+    where: {
+      patientId,
+      status: { [Op.in]: ['pending', 'scheduled'] },
+      ...(excludeId ? { id: { [Op.ne]: excludeId } } : {}),
+      [Op.and]: [
+        { startsAt: { [Op.lt]: endsAt } },
+        { endsAt: { [Op.gt]: startsAt } }
+      ]
+    },
+    transaction
+  });
+
+  if (overlappingAppointment) {
+    const error = new Error('El paciente ya tiene otra cita activa programada o pendiente en ese horario.');
+    error.status = 409;
+    throw error;
+  }
+};
+
 const ensureBookableSlot = async ({ startsAt, endsAt, physiotherapistId, transaction }) => {
   const start = new Date(startsAt);
   const end = new Date(endsAt);
@@ -325,10 +422,13 @@ const ensureBookableSlot = async ({ startsAt, endsAt, physiotherapistId, transac
     throw error;
   }
 
+  const madridStart = getMadridTimeInfo(start);
+  const madridEnd = getMadridTimeInfo(end);
+
   if (
-    start.getHours() < WORK_START_HOUR ||
-    end.getHours() > WORK_END_HOUR ||
-    (end.getHours() === WORK_END_HOUR && end.getMinutes() > 0)
+    madridStart.hour < WORK_START_HOUR ||
+    madridEnd.hour > WORK_END_HOUR ||
+    (madridEnd.hour === WORK_END_HOUR && madridEnd.minute > 0)
   ) {
     const error = new Error('La cita debe estar dentro del horario laboral de 09:00 a 18:00.');
     error.status = 409;
@@ -391,12 +491,6 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Nombre y email son obligatorios para la admision.' });
   }
 
-  if (!physiotherapistId && !physiotherapistEmail) {
-    return res
-      .status(400)
-      .json({ message: 'Debes indicar el fisioterapeuta (id o email profesional) para completar la admision.' });
-  }
-
   const intakePriority = determineIntakePriority({ urgency, pain, redFlags });
   const medicalNotes = buildIntakeNotes({
     source,
@@ -452,7 +546,7 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
   const physiotherapist = await findIntakePhysiotherapist({ physiotherapistId, physiotherapistEmail });
   if (!physiotherapist) {
     return res.status(400).json({
-      message: 'Fisioterapeuta no encontrado o inactivo. Revisa el email o id seleccionado en el triaje.'
+      message: 'No se encontro ningun fisioterapeuta o administrador activo en el sistema para asignar la admision.'
     });
   }
 
@@ -473,17 +567,41 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
     appointment = existingIntakeAppointment;
     appointmentMessage = 'Admision guardada. El paciente ya tenia una cita activa con ese fisioterapeuta.';
   } else {
+    let slot = null;
     const requestedSlot = resolveIntakeSlot({ startsAt, endsAt, preferredDate, preferredTime });
+
+    if (requestedSlot && !Number.isNaN(requestedSlot.startsAt.getTime()) && !Number.isNaN(requestedSlot.endsAt.getTime())) {
+      try {
+        await ensureBookableSlot({
+          startsAt: requestedSlot.startsAt,
+          endsAt: requestedSlot.endsAt,
+          physiotherapistId: physiotherapist.id
+        });
+        await ensureNoAppointmentOverlap({
+          startsAt: requestedSlot.startsAt,
+          endsAt: requestedSlot.endsAt,
+          physiotherapistId: physiotherapist.id
+        });
+        await ensureNoPatientOverlap({
+          startsAt: requestedSlot.startsAt,
+          endsAt: requestedSlot.endsAt,
+          patientId: patient.id
+        });
+        slot = requestedSlot;
+      } catch (e) {
+        console.log(`Requested slot not available: ${e.message}. Falling back to finding first available slot.`);
+      }
+    }
+
+    if (!slot) {
       const preference = normalizePreferenceSafe(`${availability || ''} ${preferredTime || ''}`);
-    const slot =
-      requestedSlot && !Number.isNaN(requestedSlot.startsAt.getTime()) && !Number.isNaN(requestedSlot.endsAt.getTime())
-        ? requestedSlot
-        : await findFirstAvailableSlot({ physiotherapistId: physiotherapist.id, preference });
+      slot = await findFirstAvailableSlot({ physiotherapistId: physiotherapist.id, preference });
+    }
 
     if (!slot) {
       return res.status(409).json({
         message:
-          'No hay huecos disponibles para ese fisioterapeuta en los proximos 21 dias. La admision se ha guardado, pero no se pudo generar cita.'
+          'No hay huecos disponibles para ese fisioterapeuta en los proximos 60 dias. La admision se ha guardado, pero no se pudo generar cita.'
       });
     }
 
@@ -502,6 +620,12 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
         startsAt: slot.startsAt,
         endsAt: slot.endsAt,
         physiotherapistId: physiotherapist.id,
+        transaction
+      });
+      await ensureNoPatientOverlap({
+        startsAt: slot.startsAt,
+        endsAt: slot.endsAt,
+        patientId: patient.id,
         transaction
       });
 
@@ -698,8 +822,8 @@ const listAppointments = asyncHandler(async (req, res) => {
   const appointments = await Appointment.findAll({
     where: getAppointmentWhereForUser(req.user),
     include: [
-      { model: User, as: 'patient', attributes: ['id', 'name', 'email', 'phone', 'role'] },
-      { model: User, as: 'physiotherapist', attributes: ['id', 'name', 'email', 'phone', 'role'] }
+      { model: User, as: 'patient', attributes: ['id', 'name', 'email', 'phone', 'role'], paranoid: false },
+      { model: User, as: 'physiotherapist', attributes: ['id', 'name', 'email', 'phone', 'role'], paranoid: false }
     ],
     order: [['startsAt', 'ASC']]
   });
@@ -709,9 +833,6 @@ const listAppointments = asyncHandler(async (req, res) => {
 
 const listAvailability = asyncHandler(async (req, res) => {
   const { physiotherapistId } = req.query;
-  const startDate = req.query.start ? new Date(req.query.start) : new Date();
-  const endDate = req.query.end ? new Date(req.query.end) : new Date(startDate);
-  endDate.setDate(endDate.getDate() + (req.query.end ? 0 : 20));
 
   if (!physiotherapistId) {
     return res.status(400).json({ message: 'Fisioterapeuta obligatorio para consultar disponibilidad.' });
@@ -727,28 +848,33 @@ const listAvailability = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Fisioterapeuta no encontrado.' });
   }
 
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || startDate > endDate) {
+  const startStr = req.query.start ? String(req.query.start).slice(0, 10) : toDateOnly(new Date());
+  const endStr = req.query.end ? String(req.query.end).slice(0, 10) : null;
+
+  const rangeStart = new Date(startStr + 'T00:00:00Z');
+  const rangeEnd = endStr ? new Date(endStr + 'T00:00:00Z') : new Date(rangeStart.getTime() + 20 * 24 * 60 * 60 * 1000);
+
+  if (Number.isNaN(rangeStart.getTime()) || Number.isNaN(rangeEnd.getTime()) || rangeStart > rangeEnd) {
     return res.status(400).json({ message: 'Rango de fechas invalido.' });
   }
 
-  const rangeStart = new Date(startDate);
-  rangeStart.setHours(0, 0, 0, 0);
-  const rangeEnd = new Date(endDate);
-  rangeEnd.setHours(23, 59, 59, 999);
+  const dbRangeStart = createMadridDate(startStr, 0, 0);
+  const finalEndStr = toDateOnly(rangeEnd);
+  const dbRangeEnd = createMadridDate(finalEndStr, 23, 59);
 
   const [appointments, blocks] = await Promise.all([
     Appointment.findAll({
       where: {
         physiotherapistId,
         status: { [Op.in]: ['pending', 'scheduled'] },
-        startsAt: { [Op.lt]: rangeEnd },
-        endsAt: { [Op.gt]: rangeStart }
+        startsAt: { [Op.lt]: dbRangeEnd },
+        endsAt: { [Op.gt]: dbRangeStart }
       },
       order: [['startsAt', 'ASC']]
     }),
     ScheduleBlock.findAll({
       where: {
-        date: { [Op.between]: [toDateOnly(rangeStart), toDateOnly(rangeEnd)] },
+        date: { [Op.between]: [startStr, finalEndStr] },
         [Op.or]: [{ physiotherapistId }, { physiotherapistId: null }]
       },
       order: [['date', 'ASC']]
@@ -759,16 +885,14 @@ const listAvailability = asyncHandler(async (req, res) => {
   const cursor = new Date(rangeStart);
 
   while (cursor <= rangeEnd) {
-    const date = toDateOnly(cursor);
+    const date = cursor.toISOString().slice(0, 10);
     const dayBlock = blocks.find((block) => block.date === date);
     const slots = [];
 
     if (!isWeekend(cursor) && !dayBlock) {
       for (let hour = WORK_START_HOUR; hour < WORK_END_HOUR; hour += 1) {
-        const slotStart = new Date(cursor);
-        slotStart.setHours(hour, 0, 0, 0);
-        const slotEnd = new Date(slotStart);
-        slotEnd.setMinutes(slotEnd.getMinutes() + SLOT_MINUTES);
+        const slotStart = createMadridDate(date, hour, 0);
+        const slotEnd = new Date(slotStart.getTime() + SLOT_MINUTES * 60000);
         const busy = appointments.some((appointment) =>
           overlaps(slotStart, slotEnd, new Date(appointment.startsAt), new Date(appointment.endsAt))
         );
@@ -777,7 +901,11 @@ const listAvailability = asyncHandler(async (req, res) => {
           slots.push({
             startsAt: slotStart.toISOString(),
             endsAt: slotEnd.toISOString(),
-            label: new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' }).format(slotStart)
+            label: new Intl.DateTimeFormat('es-ES', {
+              timeZone: 'Europe/Madrid',
+              hour: '2-digit',
+              minute: '2-digit'
+            }).format(slotStart)
           });
         }
       }
@@ -790,7 +918,7 @@ const listAvailability = asyncHandler(async (req, res) => {
       slots
     });
 
-    cursor.setDate(cursor.getDate() + 1);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 
   res.status(200).json({ physiotherapist, days });
@@ -805,8 +933,8 @@ const listScheduleBlocks = asyncHandler(async (req, res) => {
   const blocks = await ScheduleBlock.findAll({
     where,
     include: [
-      { model: User, as: 'physiotherapist', attributes: ['id', 'name', 'email', 'role'] },
-      { model: User, as: 'createdBy', attributes: ['id', 'name', 'email', 'role'] }
+      { model: User, as: 'physiotherapist', attributes: ['id', 'name', 'email', 'role'], paranoid: false },
+      { model: User, as: 'createdBy', attributes: ['id', 'name', 'email', 'role'], paranoid: false }
     ],
     order: [['date', 'ASC']]
   });
@@ -926,6 +1054,12 @@ const createAppointment = asyncHandler(async (req, res) => {
       physiotherapistId: resolvedPhysioId,
       transaction
     });
+    await ensureNoPatientOverlap({
+      startsAt,
+      endsAt,
+      patientId: resolvedPatientId,
+      transaction
+    });
 
     return Appointment.create(
       {
@@ -1008,7 +1142,11 @@ const updateAppointment = asyncHandler(async (req, res) => {
       });
     }
 
-    if ((payload.startsAt || payload.endsAt || payload.physiotherapistId) && !isClosedAppointmentStatus(payload.status || appointment.status)) {
+    const isNextActive = !isClosedAppointmentStatus(payload.status || appointment.status);
+    const timeOrPhysioChanged = !!(payload.startsAt || payload.endsAt || payload.physiotherapistId);
+    const statusChanged = !!(payload.status && payload.status !== appointment.status);
+
+    if (isNextActive && (timeOrPhysioChanged || statusChanged)) {
       await ensureBookableSlot({
         startsAt: nextStartsAt,
         endsAt: nextEndsAt,
@@ -1019,6 +1157,13 @@ const updateAppointment = asyncHandler(async (req, res) => {
         startsAt: nextStartsAt,
         endsAt: nextEndsAt,
         physiotherapistId: nextPhysioId,
+        excludeId: appointment.id,
+        transaction
+      });
+      await ensureNoPatientOverlap({
+        startsAt: nextStartsAt,
+        endsAt: nextEndsAt,
+        patientId: payload.patientId || appointment.patientId,
         excludeId: appointment.id,
         transaction
       });
@@ -1046,8 +1191,8 @@ const listReports = asyncHandler(async (req, res) => {
   const reports = await Report.findAll({
     where: getPatientResourceWhereForUser(req.user, 'patientId', 'authorId'),
     include: [
-      { model: User, as: 'patient', attributes: ['id', 'name', 'email', 'role'] },
-      { model: User, as: 'author', attributes: ['id', 'name', 'email', 'role'] },
+      { model: User, as: 'patient', attributes: ['id', 'name', 'email', 'role'], paranoid: false },
+      { model: User, as: 'author', attributes: ['id', 'name', 'email', 'role'], paranoid: false },
       { model: Appointment, as: 'appointment' }
     ],
     order: [['createdAt', 'DESC']]
@@ -1123,6 +1268,10 @@ const updateReport = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Reporte no encontrado.' });
   }
 
+  if (isPhysio(req.user) && report.authorId !== req.user.id) {
+    return res.status(403).json({ message: 'No tienes permisos para modificar este reporte.' });
+  }
+
   if (report.isLocked && !isAdmin(req.user)) {
     return res.status(423).json({ message: 'El reporte esta bloqueado.' });
   }
@@ -1149,6 +1298,10 @@ const deleteReport = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Reporte no encontrado.' });
   }
 
+  if (isPhysio(req.user) && report.authorId !== req.user.id) {
+    return res.status(403).json({ message: 'No tienes permisos para eliminar este reporte.' });
+  }
+
   if (report.isLocked && !isAdmin(req.user)) {
     return res.status(423).json({ message: 'El reporte esta bloqueado.' });
   }
@@ -1161,8 +1314,8 @@ const listConsents = asyncHandler(async (req, res) => {
   const consents = await Consent.findAll({
     where: getPatientResourceWhereForUser(req.user, 'patientId', 'issuedById'),
     include: [
-      { model: User, as: 'patient', attributes: ['id', 'name', 'email', 'role'] },
-      { model: User, as: 'issuedBy', attributes: ['id', 'name', 'email', 'role'] }
+      { model: User, as: 'patient', attributes: ['id', 'name', 'email', 'role'], paranoid: false },
+      { model: User, as: 'issuedBy', attributes: ['id', 'name', 'email', 'role'], paranoid: false }
     ],
     order: [['createdAt', 'DESC']]
   });
@@ -1224,6 +1377,10 @@ const updateConsent = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Consentimiento no encontrado.' });
   }
 
+  if (isPhysio(req.user) && consent.issuedById !== req.user.id) {
+    return res.status(403).json({ message: 'No tienes permisos para modificar este consentimiento.' });
+  }
+
   const payload = { ...req.body };
   delete payload.patientId;
   delete payload.issuedById;
@@ -1280,6 +1437,10 @@ const deleteConsent = asyncHandler(async (req, res) => {
 
   if (!consent) {
     return res.status(404).json({ message: 'Consentimiento no encontrado.' });
+  }
+
+  if (isPhysio(req.user) && consent.issuedById !== req.user.id) {
+    return res.status(403).json({ message: 'No tienes permisos para eliminar este consentimiento.' });
   }
 
   await consent.destroy();

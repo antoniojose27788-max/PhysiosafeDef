@@ -17,7 +17,7 @@ const assertUuid = (id, res) => {
 const isAdmin = (user) => user.role === 'admin';
 const isPhysio = (user) => user.role === 'fisioterapeuta';
 const isPatient = (user) => user.role === 'paciente';
-const isClosedAppointmentStatus = (status) => ['completed', 'validated', 'cancelled', 'no_show'].includes(status);
+const isClosedAppointmentStatus = (status) => ['completed', 'validated', 'no_show', 'cancelled'].includes(status);
 const APPOINTMENT_MUTABLE_FIELDS_FOR_PATIENT = new Set(['status']);
 const WORK_START_HOUR = 9;
 const WORK_END_HOUR = 18;
@@ -1129,8 +1129,13 @@ const updateAppointment = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'La cita debe terminar despues de empezar.' });
   }
 
-  if (payload.status && isClosedAppointmentStatus(payload.status) && new Date(nextEndsAt) > new Date() && !isAdmin(req.user)) {
-    return res.status(400).json({ message: 'No se puede cerrar una cita antes de su hora de fin.' });
+  if (
+    payload.status &&
+    ['completed', 'validated'].includes(payload.status) &&
+    new Date(nextEndsAt) > new Date() &&
+    !isAdmin(req.user)
+  ) {
+    return res.status(400).json({ message: 'No se puede marcar la cita como completada o validada antes de su hora de fin.' });
   }
 
   await sequelize.transaction(async (transaction) => {

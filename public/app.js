@@ -341,8 +341,8 @@ const buildAssistant = () => {
   shell.className = 'floating-assistant';
   shell.setAttribute('aria-label', 'Asistente PhysioSafe');
   shell.innerHTML = `
-    <button class="assistant-toggle" type="button" aria-expanded="false" aria-controls="assistantPanel">
-      <i class="fa-solid fa-comments" aria-hidden="true"></i>
+    <button class="assistant-toggle assistant-toggle--glow" type="button" aria-expanded="false" aria-controls="assistantPanel">
+      <i class="fa-solid fa-comment-medical" aria-hidden="true"></i>
       <span>Asistente</span>
     </button>
     <section class="assistant-chat" id="assistantPanel" hidden>

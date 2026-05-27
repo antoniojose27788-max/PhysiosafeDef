@@ -1526,7 +1526,7 @@ const buildNativeChatbot = () => {
     'consent', 'name', 'email', 'phone', 'reason', 'area', 'pain', 'urgency', 'redflags', 'physio', 'availability', 'confirm'
   ];
   const STEPS_CONTACT = [
-    'consent', 'name', 'email', 'phone', 'reason_brief', 'confirm_contact'
+    'consent', 'name', 'email', 'phone', 'reason_brief', 'physio', 'confirm_contact'
   ];
   let currentStepIndex = 0;
 
@@ -1822,7 +1822,7 @@ const buildNativeChatbot = () => {
         if (!chatbotPhysios.length) {
           await loadChatbotPhysios();
         }
-        if (chatbotPhysios.length) {
+        if (chatbotPhysios.length > 1) {
           addBotMessage('Elige el <strong>fisioterapeuta</strong> con el que quieres la cita:');
           showPhysioSelector(chatbotPhysios, async (physio) => {
             chatbotData.physiotherapistId = physio.id;
@@ -1830,6 +1830,12 @@ const buildNativeChatbot = () => {
             chatbotData._physioName = physio.name;
             await advanceStep();
           });
+        } else if (chatbotPhysios.length === 1) {
+          const physio = chatbotPhysios[0];
+          chatbotData.physiotherapistId = physio.id;
+          chatbotData.physiotherapistEmail = physio.email;
+          chatbotData._physioName = physio.name;
+          await advanceStep();
         } else {
           addBotMessage('No hay fisioterapeutas activos en el sistema. Se asignara uno automaticamente.');
           chatbotData.physiotherapistId = '';
@@ -1891,6 +1897,7 @@ const buildNativeChatbot = () => {
         summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-envelope"></i> ${escapeHtml(chatbotData.email)}</span>`;
         summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-phone"></i> ${escapeHtml(chatbotData.phone)}</span>`;
         summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-comment-medical"></i> ${escapeHtml(chatbotData.reason)}</span>`;
+        summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-user-doctor"></i> ${escapeHtml(chatbotData._physioName || 'Asignacion automatica')}</span>`;
 
         addBotMessage(summary);
         await delay(500);
@@ -1932,17 +1939,18 @@ const buildNativeChatbot = () => {
       payload.availability = chatbotData.availability || '';
       payload.privacyConsent = chatbotData.privacyConsent || '';
       payload.contactPreference = 'Email';
-      if (chatbotData.physiotherapistId) {
-        payload.physiotherapistId = chatbotData.physiotherapistId;
-      }
-      if (chatbotData.physiotherapistEmail) {
-        payload.physiotherapistEmail = chatbotData.physiotherapistEmail;
-      }
     } else {
       // Contact flow — minimal data
       payload.urgency = 'Puede esperar unos dias';
       payload.privacyConsent = chatbotData.privacyConsent || 'Prefiere contacto clinica';
       payload.contactPreference = 'Telefono';
+    }
+
+    if (chatbotData.physiotherapistId) {
+      payload.physiotherapistId = chatbotData.physiotherapistId;
+    }
+    if (chatbotData.physiotherapistEmail) {
+      payload.physiotherapistEmail = chatbotData.physiotherapistEmail;
     }
 
     try {

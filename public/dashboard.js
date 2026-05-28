@@ -675,7 +675,7 @@ const renderAppointments = (appointments) => {
               : ''}
                 ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:completed">Completar</button>` : ''}
                 ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:validated">Validar</button>` : ''}
-                ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:cancelled">Cancelar</button>` : ''}
+                ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-delete="${escapeAttr(appointment.id)}">Anular</button>` : ''}
               </section>
             </article>
           `;
@@ -734,7 +734,7 @@ const renderAssistantIntakes = (appointments) => {
                   : ''
                 }
                 ${canAct && ['pending', 'scheduled'].includes(appointment.status)
-                  ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:cancelled">Cancelar</button>`
+                  ? `<button class="mini-action" type="button" data-appointment-delete="${escapeAttr(appointment.id)}">Anular</button>`
                   : ''
                 }
               </section>
@@ -1163,12 +1163,13 @@ document.querySelector('#userForm').addEventListener('submit', async (event) => 
 document.addEventListener('click', async (event) => {
   const appointmentAction = event.target.closest('[data-appointment-status]');
   const appointmentAcceptAction = event.target.closest('[data-appointment-accept]');
+  const appointmentDeleteAction = event.target.closest('[data-appointment-delete]');
   const signAction = event.target.closest('[data-consent-sign]');
   const revokeAction = event.target.closest('[data-consent-revoke]');
   const disableAction = event.target.closest('[data-user-disable]');
   const slotAction = event.target.closest('[data-slot-start]');
   const scheduleBlockDeleteAction = event.target.closest('[data-schedule-block-delete]');
-  const remoteAction = appointmentAction || appointmentAcceptAction || signAction || revokeAction || disableAction || scheduleBlockDeleteAction;
+  const remoteAction = appointmentAction || appointmentAcceptAction || appointmentDeleteAction || signAction || revokeAction || disableAction || scheduleBlockDeleteAction;
 
   try {
     if (slotAction) {
@@ -1207,6 +1208,18 @@ document.addEventListener('click', async (event) => {
       await request(`/appointments/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
       await refreshAll();
       setFeedback('Admisión asignada y aceptada correctamente.', 'success');
+    }
+
+    if (appointmentDeleteAction) {
+      if (!confirm('¿Estás seguro de que deseas anular y eliminar esta cita por completo? Esta acción liberará las horas.')) {
+        remoteAction.disabled = false;
+        setFeedback('');
+        return;
+      }
+      const id = appointmentDeleteAction.dataset.appointmentDelete;
+      await request(`/appointments/${id}`, { method: 'DELETE' });
+      await refreshAll();
+      setFeedback('Cita anulada y eliminada correctamente.', 'success');
     }
 
     if (signAction) {

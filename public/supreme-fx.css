@@ -1,0 +1,282 @@
+/* ==========================================================
+   EFECTOS VANGUARDISTAS Y PARALLAX (SUPREME)
+   ========================================================== */
+
+
+/* Efectos "Fantásticos" en Tarjetas y Botones */
+.dashboard-card, .patient-card, .appointment-card, .glass-panel {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, border-color 0.4s ease !important;
+}
+
+.dashboard-card:hover, .patient-card:hover, .appointment-card:hover, .glass-panel:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 25px 50px rgba(12, 143, 136, 0.15), 0 0 0 2px rgba(68, 199, 189, 0.3) !important;
+  border-color: rgba(68, 199, 189, 0.5) !important;
+}
+
+button:hover, .btn:hover, a.btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 10px 20px rgba(12, 143, 136, 0.25) !important;
+  filter: brightness(1.1);
+}
+
+.typebot-embed-shell:hover {
+  box-shadow: 0 30px 60px rgba(12, 143, 136, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.6) inset !important;
+  transform: translateY(-5px);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease !important;
+}
+
+/* ==========================================================
+   REDISEÑO ULTRA-PREMIUM DEL CHATBOT DE ADMISIÓN
+   ========================================================== */
+
+/* Panel Principal - Glassmorphism Puro y Claro */
+.typebot-live-panel {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(40px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(150%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.8) !important;
+  border-radius: 24px !important;
+  color: #102326 !important;
+}
+
+/* Área de Chat (Fondo Neutro y Elegante con micro-textura) */
+.typebot-embed-shell, .native-chatbot-shell {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(245, 252, 250, 0.7)),
+    radial-gradient(circle at 10% 20%, rgba(12, 143, 136, 0.05) 0%, transparent 20%),
+    radial-gradient(circle at 90% 80%, rgba(244, 184, 96, 0.05) 0%, transparent 20%) !important;
+  border: 1px solid rgba(255, 255, 255, 1) !important;
+  box-shadow: inset 0 0 0 1px rgba(12, 143, 136, 0.05), 0 15px 35px rgba(0,0,0,0.03) !important;
+  border-radius: 20px !important;
+  position: relative;
+}
+
+/* Burbujas del Bot - Blancas, Limpias, Sombras Suaves con borde brillante */
+.chatbot-msg--bot .chatbot-msg__bubble {
+  background: linear-gradient(180deg, #ffffff 0%, #fcfdfd 100%) !important;
+  color: #1a3336 !important;
+  border: 1px solid rgba(12, 143, 136, 0.1) !important;
+  box-shadow: 0 6px 16px rgba(12, 143, 136, 0.06), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+  border-radius: 20px 20px 20px 4px !important;
+  font-weight: 500 !important;
+  padding: 14px 18px !important;
+  line-height: 1.5 !important;
+}
+
+/* Icono del Bot - Halo de luz */
+.chatbot-msg--bot .chatbot-msg__icon {
+  background: linear-gradient(135deg, #0c8f88, #44c7bd) !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 4px 12px rgba(12, 143, 136, 0.3), 0 0 0 4px rgba(68, 199, 189, 0.1) !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+}
+
+/* Burbuja de Alerta/Warning (Reemplaza el fondo oscuro con texto naranja) */
+.chatbot-msg--bot.chatbot-msg--warning .chatbot-msg__bubble,
+.chatbot-msg--warning .chatbot-msg__bubble {
+  background: linear-gradient(180deg, #fffcf5 0%, #fff6e5 100%) !important;
+  color: #b35900 !important;
+  border: 1px solid rgba(255, 153, 0, 0.3) !important;
+  box-shadow: 0 6px 16px rgba(255, 153, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+  border-left: 4px solid #f4b860 !important;
+}
+
+/* Burbujas del Usuario - Tono de marca elegante */
+.chatbot-msg--user .chatbot-msg__bubble {
+  background: linear-gradient(135deg, #0c8f88, #096d68) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 8px 20px rgba(12, 143, 136, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  border-radius: 20px 20px 4px 20px !important;
+  padding: 14px 18px !important;
+}
+
+/* Botones de Opciones (Choices) */
+.chatbot-choice-btn {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbfb 100%) !important;
+  color: #0c8f88 !important;
+  border: 1px solid rgba(12, 143, 136, 0.15) !important;
+  box-shadow: 0 4px 12px rgba(12, 143, 136, 0.05), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  padding: 12px 20px !important;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.chatbot-choice-btn:hover {
+  background: linear-gradient(135deg, #0c8f88, #44c7bd) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 0 10px 24px rgba(12, 143, 136, 0.25) !important;
+}
+
+.chatbot-choice-btn:hover i {
+  color: #ffffff !important;
+}
+
+/* Area de Inputs */
+.chatbot-text-form {
+  background: #ffffff !important;
+  border: 1px solid rgba(12, 143, 136, 0.15) !important;
+  box-shadow: 0 10px 30px rgba(12, 143, 136, 0.08) !important;
+  border-radius: 24px !important;
+  padding: 6px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.chatbot-text-input {
+  color: #1a3336 !important;
+  padding: 10px 16px !important;
+  font-weight: 500 !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+}
+
+.chatbot-text-input::placeholder {
+  color: #a0b2af !important;
+}
+
+.chatbot-send-btn {
+  background: linear-gradient(135deg, #0c8f88, #44c7bd) !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  width: 44px !important;
+  height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 4px 12px rgba(12, 143, 136, 0.2) !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+  border: none !important;
+}
+
+.chatbot-send-btn:hover {
+  transform: scale(1.08) rotate(-10deg) !important;
+  box-shadow: 0 8px 20px rgba(12, 143, 136, 0.4) !important;
+}
+
+/* ==========================================================
+   CRM ENTERPRISE UPGRADES (BLINDADO Y PROFESIONAL)
+   ========================================================== */
+
+/* Tipografía de Sección y Eyebrows (Micro-copys) */
+.eyebrow {
+  text-transform: uppercase !important;
+  letter-spacing: 0.15em !important;
+  font-size: 0.75rem !important;
+  font-weight: 800 !important;
+  color: #0c8f88 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Tarjetas y Paneles (Glassmorphism Avanzado) */
+.glass-panel, .dashboard-card, .data-panel, .record-card {
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.02),
+    0 10px 15px -3px rgba(0, 0, 0, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+  border-radius: 20px !important;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease !important;
+}
+
+.record-card:hover, .dashboard-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 
+    0 12px 24px -5px rgba(12, 143, 136, 0.12),
+    0 20px 40px -10px rgba(12, 143, 136, 0.08) !important;
+  border-color: rgba(68, 199, 189, 0.4) !important;
+}
+
+/* Inputs y Formularios de Alta Gama */
+.form-control, .form-select {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 14px 18px !important;
+  font-weight: 500 !important;
+  color: #1e293b !important;
+  transition: all 0.25s ease !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.01) !important;
+}
+
+.form-control:focus, .form-select:focus {
+  background: #ffffff !important;
+  border-color: #0c8f88 !important;
+  box-shadow: 0 0 0 4px rgba(12, 143, 136, 0.15) !important;
+  outline: none !important;
+}
+
+/* Botones Principales (Acción) */
+.btn.primary-action {
+  background: linear-gradient(135deg, #0c8f88 0%, #096d68 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 12px 24px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  box-shadow: 
+    0 4px 10px rgba(12, 143, 136, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.btn.primary-action:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 
+    0 8px 20px rgba(12, 143, 136, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+.btn.primary-action:active {
+  transform: translateY(1px) scale(0.98) !important;
+  box-shadow: 0 2px 5px rgba(12, 143, 136, 0.3) !important;
+}
+
+/* Scrollbar Personalizado y Profesional */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Títulos H2 de Secciones CRM */
+.panel-header h2 {
+  font-size: 1.6rem !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  margin-bottom: 0.5rem !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* Navegación y Cabeceras */
+.dashboard-topbar {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+}

@@ -64,6 +64,64 @@ test('production startup blocks automatic schema alteration by default', () => {
 test('active appointments cannot be booked in the past', () => {
   const controller = read('controllers/apiController.js');
 
-  assert.equal(controller.includes('La cita debe empezar en una fecha y hora futura.'), true);
+  // Updated message after QA improvement — explicit, user-friendly text
+  assert.equal(
+    controller.includes('No es posible programar ni reprogramar una cita en una fecha u hora que ya ha pasado. Selecciona una fecha futura.'),
+    true
+  );
   assert.match(controller, /if \(start <= new Date\(\)\)/);
+});
+
+test('appointment cannot be booked on a weekend', () => {
+  const controller = read('controllers/apiController.js');
+
+  assert.equal(controller.includes('La clínica no opera en fines de semana'), true);
+  assert.match(controller, /if \(isWeekend\(start\)\)/);
+});
+
+test('appointment cannot be booked outside working hours 09:00-18:00', () => {
+  const controller = read('controllers/apiController.js');
+
+  assert.equal(controller.includes('horario clínico de 09:00 a 18:00'), true);
+  assert.match(controller, /WORK_START_HOUR/);
+  assert.match(controller, /WORK_END_HOUR/);
+});
+
+test('overlapping appointments are rejected with a clear actionable message', () => {
+  const controller = read('controllers/apiController.js');
+
+  assert.equal(
+    controller.includes('El fisioterapeuta ya tiene una cita activa en ese horario. Por favor, elige una fecha u hora diferente.'),
+    true
+  );
+  assert.equal(
+    controller.includes('El paciente ya tiene otra cita pendiente o programada en ese mismo horario.'),
+    true
+  );
+});
+
+test('rescheduling past-date is validated on the frontend before API call', () => {
+  const script = read('public/dashboard.js');
+
+  assert.equal(script.includes('No puedes reprogramar una cita a una fecha u hora que ya ha pasado.'), true);
+  assert.equal(script.includes('La clínica no atiende en fines de semana.'), true);
+  assert.equal(script.includes('El horario clínico es de 09:00 a 18:00.'), true);
+});
+
+test('rescheduling past-date is also validated by the backend', () => {
+  const controller = read('controllers/apiController.js');
+
+  // Explicit early-return guard added in updateAppointment for past reschedule
+  assert.equal(
+    controller.includes('No es posible reprogramar una cita a una fecha u hora que ya ha pasado. Selecciona una fecha futura.'),
+    true
+  );
+});
+
+test('appointment reschedule box renders with correct ids for main and assistant sections', () => {
+  const script = read('public/dashboard.js');
+
+  assert.match(script, /reschedule-box-main-/);
+  assert.match(script, /reschedule-date-main-/);
+  assert.match(script, /data-reschedule-type="main"/);
 });

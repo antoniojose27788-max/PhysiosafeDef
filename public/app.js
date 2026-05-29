@@ -286,64 +286,64 @@ const initMotionSystem = () => {
 
 const assistantKnowledge = [
   {
-    keywords: ['admin', 'primer usuario', 'inicial', 'configurar'],
+    keywords: ['admin', 'primer usuario', 'inicial', 'configurar', 'ajuste', 'instalacion'],
     answer:
-      '<strong>Primer acceso y puesta en marcha.</strong><br>Cuando la base de datos esta vacia, PhysioSafe activa el alta del primer administrador. Esa cuenta inicial permite configurar el equipo, crear fisioterapeutas, registrar pacientes y empezar a operar con permisos completos desde un entorno privado.'
+      '<strong>Puesta en Marcha y Configuración Inicial.</strong><br>Cuando la base de datos se inicia sin usuarios, PhysioSafe activa automáticamente la creación de la cuenta del primer administrador. Desde este perfil inicial, se puede registrar el equipo de fisioterapeutas, definir horarios de atención y configurar la clínica, garantizando que el sistema esté listo para producción bajo un entorno seguro.'
   },
   {
-    keywords: ['permisos', 'roles', 'privacidad', 'seguridad'],
+    keywords: ['permisos', 'roles', 'privacidad', 'seguridad', 'rol', 'acceso'],
     answer:
-      '<strong>Seguridad y privacidad por rol.</strong><br>PhysioSafe separa el acceso entre administracion, fisioterapeutas y pacientes. Cada usuario ve solo las areas que necesita para trabajar o consultar su informacion, reduciendo exposicion de datos clinicos y manteniendo trazabilidad en citas, reportes y consentimientos.'
+      '<strong>Control de Acceso y Seguridad de la Información.</strong><br>La plataforma utiliza una rigurosa separación de accesos por roles. Los administradores gestionan el personal y configuraciones globales; los fisioterapeutas acceden únicamente a agendas y fichas clínicas de pacientes asociados; y los pacientes visualizan solo su documentación y citas pendientes. Esto asegura el cumplimiento de las normativas de protección de datos de salud (RGPD).'
   },
   {
     keywords: ['registro', 'registrar', 'cuenta', 'nuevo paciente', 'alta'],
     answer:
-      '<strong>Registro de pacientes.</strong><br>El portal publico permite crear una cuenta de paciente de forma clara y segura. Una vez dentro, el paciente puede solicitar citas, revisar documentacion disponible y firmar consentimientos pendientes sin depender de procesos manuales.'
+      '<strong>Alta de Fichas y Registro de Pacientes.</strong><br>Los pacientes pueden darse de alta de forma autónoma a través del portal de registro seguro, o bien ser ingresados directamente por el personal de la clínica. Una vez registrados, se genera un perfil privado donde el paciente puede autogestionar solicitudes de citas y firmar documentos legales en tiempo récord.'
   },
   {
-    keywords: ['paciente', 'cliente', 'panel paciente'],
+    keywords: ['paciente', 'cliente', 'panel paciente', 'portal'],
     answer:
-      '<strong>Experiencia del paciente.</strong><br>El paciente accede a un panel privado para consultar sus citas, solicitar nuevas sesiones y gestionar documentos importantes. La idea es que llegue a consulta con menos dudas y que la clinica trabaje con informacion ordenada desde el primer contacto.'
+      '<strong>Portal Privado del Paciente.</strong><br>El panel del paciente está optimizado para ofrecer una experiencia fluida e interactiva. Les permite solicitar citas en base a disponibilidad real de la clínica, consultar el historial de sesiones validadas, descargar sus reportes autorizados y firmar consentimientos pendientes con total comodidad desde cualquier dispositivo.'
   },
   {
-    keywords: ['fisio', 'fisioterapeuta', 'equipo', 'profesional'],
+    keywords: ['fisio', 'fisioterapeuta', 'equipo', 'profesional', 'personal'],
     answer:
-      '<strong>Gestion del equipo clinico.</strong><br>Los fisioterapeutas se dan de alta desde el panel de administracion. Esto evita registros internos no autorizados y permite que cada profesional trabaje con agenda, pacientes y documentacion clinica desde un circuito controlado.'
+      '<strong>Gestión y Asignación de Fisioterapeutas.</strong><br>Los profesionales de la salud son dados de alta por el administrador del sistema, asignándoles un perfil con permisos específicos para redactar reportes de evolución, firmar informes de alta y programar citas de sus pacientes, manteniendo la trazabilidad e historial clínico organizado.'
   },
   {
-    keywords: ['login', 'entrar', 'acceso', 'iniciar sesion'],
+    keywords: ['login', 'entrar', 'acceso', 'iniciar sesion', 'credenciales'],
     answer:
-      '<strong>Acceso al portal.</strong><br>El inicio de sesion es unico para todos los perfiles. Tras validar las credenciales, PhysioSafe aplica los permisos del usuario y muestra las herramientas adecuadas para administracion, trabajo clinico o gestion del paciente.'
+      '<strong>Acceso Unificado y Autenticación Segura.</strong><br>La plataforma dispone de un único punto de acceso seguro. El sistema analiza las credenciales del usuario e inicia el entorno de trabajo correspondiente a su rol (Administración, Fisioterapia o Paciente), garantizando que las herramientas y los datos personales estén protegidos desde el primer segundo.'
   },
   {
-    keywords: ['cita', 'citas', 'agenda', 'reservar', 'pedir cita'],
+    keywords: ['cita', 'citas', 'agenda', 'reservar', 'pedir cita', 'solapes', 'horario'],
     answer:
-      '<strong>Agenda y solicitud de citas.</strong><br>La agenda comprueba disponibilidad real, evita solapes y respeta dias no laborables. El equipo clinico puede programar sesiones y los pacientes pueden solicitar cita para que la clinica la revise y confirme.'
+      '<strong>Agenda de Citas y Control de Disponibilidad.</strong><br>El módulo de agenda digital valida en tiempo real la disponibilidad de los fisioterapeutas y evita solapes de horarios. Admite solicitudes directas de pacientes que el equipo de la clínica puede aprobar o reprogramar de forma ágil, optimizando la ocupación de salas y la carga asistencial de los profesionales.'
   },
   {
-    keywords: ['consentimiento', 'firmar', 'reportes', 'informe', 'legal'],
+    keywords: ['consentimiento', 'firmar', 'reportes', 'informe', 'legal', 'firma'],
     answer:
-      '<strong>Documentacion clinica y legal.</strong><br>PhysioSafe centraliza reportes, evolucion clinica y consentimientos. El equipo puede emitir documentos al paciente y el paciente puede firmarlos desde su cuenta, dejando constancia de estado, fecha y trazabilidad.'
+      '<strong>Documentación Clínica y Firmas Electrónicas.</strong><br>PhysioSafe digitaliza y da validez jurídica a los consentimientos informados de tratamiento, datos y teleconsulta. El fisioterapeuta emite el documento, el paciente lo firma electrónicamente desde su perfil y el sistema registra la huella digital y fecha de la operación, eliminando por completo el uso de papel en clínica.'
   },
   {
-    keywords: ['admision', 'triaje', 'primera visita', 'asistente'],
+    keywords: ['admision', 'triaje', 'primera visita', 'asistente', 'intake'],
     answer:
-      '<strong>Admision y triaje inicial.</strong><br>El asistente ayuda a recoger motivo de consulta, zona afectada, dolor, urgencia, disponibilidad y posibles senales de alerta. Esa informacion prepara mejor la primera valoracion y ayuda al equipo a priorizar cada caso.'
+      '<strong>Admisión Digital y Triaje Clínico Inicial.</strong><br>Antes de la primera consulta, el asistente digital recopila datos críticos del paciente: zona afectada, escala de dolor, urgencia y disponibilidad horaria. Estos datos estructurados se sincronizan directamente con el expediente clínico en el panel para que el terapeuta disponga de todo el contexto antes de que el paciente entre en la consulta.'
   },
   {
-    keywords: ['urgente', 'urgencia', 'alerta', 'hormigueo', 'fiebre', 'red flag'],
+    keywords: ['urgente', 'urgencia', 'alerta', 'hormigueo', 'fiebre', 'red flag', 'esfinteres'],
     answer:
-      '<strong>Senales de alerta.</strong><br>Si aparecen sintomas como perdida progresiva de fuerza, fiebre, traumatismo importante, dolor nocturno intenso o perdida de control de esfinteres, el caso debe considerarse prioritario. PhysioSafe puede marcar esa admision para revision clinica, pero ante gravedad real se debe contactar con urgencias.'
+      '<strong>Detección de Banderas Rojas y Priorización.</strong><br>El asistente está programado para identificar signos de alarma clínicos (pérdida de fuerza progresiva, adormecimiento, fiebre alta o traumatismos graves). Si se detectan, el caso se etiqueta automáticamente como "Revisión Prioritaria". Sin embargo, se recuerda al usuario que en situaciones críticas debe acudir directamente al servicio de urgencias médicas.'
   },
   {
-    keywords: ['tratamiento', 'rehabilitacion', 'terapia', 'servicios'],
+    keywords: ['tratamiento', 'rehabilitacion', 'terapia', 'servicios', 'continuidad'],
     answer:
-      '<strong>Servicios y continuidad asistencial.</strong><br>La plataforma encaja con valoraciones iniciales, terapia manual, rehabilitacion funcional, ejercicio terapeutico y readaptacion deportiva. Lo importante es mantener agenda, evolucion y documentacion conectadas durante todo el proceso del paciente.'
+      '<strong>Servicios y Continuidad Asistencial.</strong><br>La plataforma se adapta a los servicios de valoración inicial, terapia manual, readaptación deportiva, ejercicio terapéutico y rehabilitación funcional. La conexión constante entre los diarios clínicos de evolución y la agenda asegura un seguimiento continuo y de alta calidad para cada paciente.'
   },
   {
-    keywords: ['clinica', 'physiosafe', 'que es', 'ventajas', 'software'],
+    keywords: ['clinica', 'physiosafe', 'que es', 'ventajas', 'software', 'plataforma', 'saas', 'beneficios', 'valor'],
     answer:
-      '<strong>Que es PhysioSafe.</strong><br>PhysioSafe es una plataforma de gestion para clinicas de fisioterapia que une agenda, pacientes, reportes, consentimientos y admision digital. Su objetivo es reducir friccion administrativa, mejorar la coordinacion del equipo y ofrecer al paciente una experiencia mas clara y profesional.'
+      '<strong>PhysioSafe: Gestión de Clínicas.</strong><br>PhysioSafe es una plataforma SaaS premium para la gestión y digitalización de clínicas de fisioterapia. Centraliza en un entorno único y seguro la agenda de citas, fichas de pacientes, reportes clínicos de evolución, firmas de consentimientos informados y admisiones digitales con triaje inicial inteligente. Su meta es reducir la burocracia y mejorar la experiencia asistencial.'
   }
 ];
 
@@ -358,19 +358,28 @@ const buildAssistant = () => {
     </button>
     <section class="assistant-chat" id="assistantPanel" hidden>
       <header>
-        <strong>PhysioSafe</strong>
+        <div class="assistant-header-info">
+          <div class="assistant-avatar">
+            <i class="fa-solid fa-user-doctor" aria-hidden="true"></i>
+            <span class="status-indicator online"></span>
+          </div>
+          <div>
+            <strong>Soporte PhysioSafe</strong>
+            <small>Asistente Virtual • En línea</small>
+          </div>
+        </div>
         <button class="icon-button" type="button" aria-label="Cerrar asistente">
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </header>
       <section class="assistant-messages" aria-live="polite">
-        <article class="assistant-message bot"><strong>Bienvenido a PhysioSafe.</strong><br>Estoy aqui para resolver dudas sobre el portal, la gestion de citas, la admision inicial, la seguridad de los datos y el recorrido del paciente dentro de la clinica.</article>
+        <article class="assistant-message bot"><strong>Bienvenido a PhysioSafe.</strong><br>Soy tu asistente virtual de soporte. ¿En qué puedo orientarte hoy sobre la digitalización y el funcionamiento de la clínica?</article>
       </section>
       <nav class="assistant-suggestions" aria-label="Preguntas sugeridas">
-        <button type="button">¿Qué es PhysioSafe?</button>
-        <button type="button">¿Cómo funciona la agenda?</button>
-        <button type="button">¿Qué es el Triaje Digital?</button>
-        <button type="button">¿Es seguro para mis pacientes?</button>
+        <button type="button"><i class="fa-regular fa-lightbulb" aria-hidden="true"></i> ¿Qué es PhysioSafe y qué valor aporta?</button>
+        <button type="button"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> ¿Cómo funciona el control de agenda?</button>
+        <button type="button"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> ¿Qué es la admisión y triaje inteligente?</button>
+        <button type="button"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> ¿Cumple con la normativa legal de datos?</button>
       </nav>
       <form class="assistant-form">
         <label>
@@ -412,7 +421,7 @@ const buildAssistant = () => {
     );
     return (
       match?.answer ||
-      '<strong>Puedo ayudarte a orientarte.</strong><br>Prueba con temas como citas, seguridad, pacientes, admision, triaje, consentimientos, reportes o acceso al portal. Si tu duda es clinica o urgente, contacta directamente con el equipo sanitario.'
+      '<strong>Puedo ayudarte a orientarte.</strong><br>Prueba preguntando sobre la agenda, el triaje, los roles, los consentimientos legales o la seguridad de datos. Si tu duda es clínica o urgente, contacta directamente con el equipo de la clínica.'
     );
   };
 

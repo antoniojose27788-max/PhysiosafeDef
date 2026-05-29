@@ -392,7 +392,7 @@ const ensureNoAppointmentOverlap = async ({ startsAt, endsAt, physiotherapistId,
   });
 
   if (overlappingAppointment) {
-    const error = new Error('La cita se solapa con otra cita activa del fisioterapeuta.');
+    const error = new Error('El fisioterapeuta ya tiene una cita activa en ese horario. Por favor, elige una fecha u hora diferente.');
     error.status = 409;
     throw error;
   }
@@ -413,7 +413,7 @@ const ensureNoPatientOverlap = async ({ startsAt, endsAt, patientId, excludeId, 
   });
 
   if (overlappingAppointment) {
-    const error = new Error('El paciente ya tiene otra cita activa programada o pendiente en ese horario.');
+    const error = new Error('El paciente ya tiene otra cita pendiente o programada en ese mismo horario. Elige una franja horaria diferente.');
     error.status = 409;
     throw error;
   }
@@ -425,19 +425,19 @@ const ensureBookableSlot = async ({ startsAt, endsAt, physiotherapistId, transac
   const dateOnly = toDateOnly(start);
 
   if (!dateOnly || Number.isNaN(end.getTime())) {
-    const error = new Error('Fecha de cita invalida.');
+    const error = new Error('La fecha o la hora de la cita no es válida. Por favor, revisa los datos e inténtalo de nuevo.');
     error.status = 400;
     throw error;
   }
 
   if (start <= new Date()) {
-    const error = new Error('La cita debe empezar en una fecha y hora futura.');
+    const error = new Error('No es posible programar ni reprogramar una cita en una fecha u hora que ya ha pasado. Selecciona una fecha futura.');
     error.status = 409;
     throw error;
   }
 
   if (isWeekend(start)) {
-    const error = new Error('Ese dia no esta disponible para citas.');
+    const error = new Error('La clínica no opera en fines de semana (sábado ni domingo). Elige un día entre lunes y viernes.');
     error.status = 409;
     throw error;
   }
@@ -450,7 +450,7 @@ const ensureBookableSlot = async ({ startsAt, endsAt, physiotherapistId, transac
     madridEnd.hour > WORK_END_HOUR ||
     (madridEnd.hour === WORK_END_HOUR && madridEnd.minute > 0)
   ) {
-    const error = new Error('La cita debe estar dentro del horario laboral de 09:00 a 18:00.');
+    const error = new Error(`La cita debe estar dentro del horario clínico de 09:00 a 18:00 (hora de Madrid). El horario seleccionado está fuera de ese rango.`);
     error.status = 409;
     throw error;
   }
@@ -468,7 +468,7 @@ const ensureBookableSlot = async ({ startsAt, endsAt, physiotherapistId, transac
   });
 
   if (block) {
-    const error = new Error(`Ese dia no esta disponible: ${block.reason}.`);
+    const error = new Error(`La fecha seleccionada no está disponible: ${block.reason}. Elige otra fecha.`);
     error.status = 409;
     throw error;
   }
@@ -1155,24 +1155,29 @@ const updateAppointment = asyncHandler(async (req, res) => {
   }
 
   if (payload.status && !Appointment.APPOINTMENT_STATUSES.includes(payload.status)) {
-    return res.status(400).json({ message: 'Estado de cita invalido.' });
+    return res.status(400).json({ message: 'El estado de cita indicado no es válido.' });
   }
 
   const nextPhysioId = payload.physiotherapistId || appointment.physiotherapistId;
 
   if (payload.status === 'scheduled' && !nextPhysioId) {
-    return res.status(400).json({ message: 'Asigna un fisioterapeuta antes de programar la cita.' });
+    return res.status(400).json({ message: 'Debes asignar un fisioterapeuta antes de poder programar la cita.' });
   }
 
   if (payload.status === 'validated' && !isAdmin(req.user) && !isPhysio(req.user)) {
-    return res.status(403).json({ message: 'Solo el equipo clinico puede validar una cita.' });
+    return res.status(403).json({ message: 'Solo el equipo clínico (fisioterapeuta o administrador) puede validar una cita.' });
   }
 
   const nextStartsAt = payload.startsAt || appointment.startsAt;
   const nextEndsAt = payload.endsAt || appointment.endsAt;
 
   if (new Date(nextStartsAt) >= new Date(nextEndsAt)) {
-    return res.status(400).json({ message: 'La cita debe terminar despues de empezar.' });
+    return res.status(400).json({ message: 'La hora de finalización de la cita debe ser posterior a la hora de inicio.' });
+  }
+
+  // Validate the rescheduled slot is in the future
+  if ((payload.startsAt || payload.endsAt) && new Date(nextStartsAt) <= new Date()) {
+    return res.status(409).json({ message: 'No es posible reprogramar una cita a una fecha u hora que ya ha pasado. Selecciona una fecha futura.' });
   }
 
   if (
@@ -1181,7 +1186,7 @@ const updateAppointment = asyncHandler(async (req, res) => {
     new Date(nextEndsAt) > new Date() &&
     !isAdmin(req.user)
   ) {
-    return res.status(400).json({ message: 'No se puede marcar la cita como completada o validada antes de su hora de fin.' });
+    return res.status(400).json({ message: 'No se puede marcar la cita como completada o validada antes de que haya concluido su hora de fin.' });
   }
 
   await sequelize.transaction(async (transaction) => {

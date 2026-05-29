@@ -61,8 +61,13 @@ if (!token) {
 }
 
 const setFeedback = (message, type = '') => {
-  feedback.textContent = message;
-  feedback.className = `form-feedback ${type}`.trim();
+  if (feedback) {
+    feedback.textContent = message;
+    feedback.className = `form-feedback ${type}`.trim();
+  }
+  if (message && message !== 'Guardando...' && typeof window.showToast === 'function') {
+    window.showToast(message, type || 'info');
+  }
 };
 
 const parseResponseBody = (text) => {
@@ -84,26 +89,31 @@ const escapeHtml = (value) =>
 
 const escapeAttr = (value) => escapeHtml(value);
 
-const request = async (path, options = {}) => {
+const request = async (path, options = {}, retries = 3) => {
   let response;
 
-  try {
-    response = await fetch(`${API_BASE}${path}`, {
-      cache: 'no-store',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-        Authorization: `Bearer ${token}`,
-        ...(options.headers || {})
-      },
-      ...options
-    });
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      throw error;
+  for (let i = 0; i < retries; i++) {
+    try {
+      response = await fetch(`${API_BASE}${path}`, {
+        cache: 'no-store',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          Authorization: `Bearer ${token}`,
+          ...(options.headers || {})
+        },
+        ...options
+      });
+      break; // Petición exitosa, salir del bucle
+    } catch (error) {
+      if (error.name === 'AbortError') throw error;
+      if (i === retries - 1) {
+        throw new Error('No se pudo conectar con PhysioSafe. Revisa tu conexión a internet.');
+      }
+      // Exponential Backoff
+      await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, i)));
     }
-    throw new Error('No se pudo conectar con PhysioSafe. Revisa que el servidor este activo y vuelve a intentarlo.');
   }
 
   if (response.status === 401) {
@@ -246,7 +256,27 @@ const statusLabel = (status) =>
 const renderEmpty = (target, text) => {
   if (!target) return;
   scheduleUpdate(() => {
-    target.innerHTML = `<article class="record-card"><h3>${escapeHtml(text)}</h3><small>No hay datos disponibles.</small></article>`;
+    target.innerHTML = `
+      <article class="empty-state">
+        <i class="fa-solid fa-folder-open empty-state-icon" aria-hidden="true"></i>
+        <h3>${escapeHtml(text)}</h3>
+        <p>No hay datos disponibles para mostrar.</p>
+      </article>
+    `;
+  });
+};
+
+const renderSkeleton = (target, count = 3) => {
+  if (!target) return;
+  const skeletonHtml = Array(count).fill(
+    `<article class="skeleton-card">
+       <div class="skeleton-line title"></div>
+       <div class="skeleton-line"></div>
+       <div class="skeleton-line short"></div>
+     </article>`
+  ).join('');
+  scheduleUpdate(() => {
+    target.innerHTML = skeletonHtml;
   });
 };
 
@@ -379,6 +409,7 @@ const loadUsers = async (force = false, signal = null) => {
     return;
   }
 
+  renderSkeleton(usersList, 4);
   const { users } = await request('/users', { signal });
   state.users = users;
   state.patients = users.filter((user) => user.role === 'paciente');
@@ -578,15 +609,20 @@ const loadStats = async (signal = null) => {
 const parseIntakeNotes = (notes) => {
   if (!notes) return {};
   const result = {};
-  String(notes)
-    .split('\n')
-    .forEach((line) => {
-      const colonIndex = line.indexOf(':');
-      if (colonIndex === -1) return;
-      const key = line.slice(0, colonIndex).trim().toLowerCase();
-      const value = line.slice(colonIndex + 1).trim();
-      if (key && value) result[key] = value;
-    });
+  
+  // Expresión regular que busca "Clave: Valor" ignorando si hay saltos de línea o solo espacios
+  // Busca una clave (letras/espacios) seguida de ":" y captura el valor hasta la próxima clave seguida de ":" o el final del string.
+  const regex = /([A-Za-z\s]+):\s*(.*?)(?=(?:[A-Za-z\s]+:)|$)/g;
+  let match;
+  
+  while ((match = regex.exec(notes)) !== null) {
+    const key = match[1].trim().toLowerCase();
+    const value = match[2].trim();
+    if (key && value) {
+      result[key] = value;
+    }
+  }
+
   return result;
 };
 
@@ -596,7 +632,7 @@ const parseIntakeNotes = (notes) => {
  */
 const renderIntakeMeta = (notes) => {
   const d = parseIntakeNotes(notes);
-  if (!d['origen'] || d['origen'] !== 'typebot') return '';
+  if (!d['origen'] || (!d['origen'].includes('typebot') && !d['origen'].includes('chatbot'))) return '';
 
   const priority = d['prioridad inicial'] || 'normal';
   const priorityLabel = { revision_prioritaria: 'Revision prioritaria', preferente: 'Preferente', normal: 'Normal' }[priority] || priority;
@@ -675,8 +711,20 @@ const renderAppointments = (appointments) => {
               : ''}
                 ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:completed">Completar</button>` : ''}
                 ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:validated">Validar</button>` : ''}
-                ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-delete="${escapeAttr(appointment.id)}">Anular</button>` : ''}
+                ${['admin', 'fisioterapeuta'].includes(state.user.role) && ['pending', 'scheduled'].includes(appointment.status) ? `
+                  <button class="mini-action" type="button" onclick="document.getElementById('reschedule-box-main-${escapeAttr(appointment.id)}').style.display='block'">Reprogramar</button>
+                  <button class="mini-action" type="button" data-appointment-delete="${escapeAttr(appointment.id)}">Anular</button>
+                ` : ''}
+                ${state.user.role === 'paciente' && ['pending', 'scheduled'].includes(appointment.status) && new Date(appointment.startsAt) > new Date() ? `
+                  <button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:cancelled">Cancelar cita</button>
+                ` : ''}
               </section>
+              <div id="reschedule-box-main-${escapeAttr(appointment.id)}" style="display:none; margin-top: 12px; padding: 12px; background: rgba(255,255,255,0.6); border-radius: 8px;">
+                <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Nueva fecha y hora:</label>
+                <input type="datetime-local" class="form-control mb-2" id="reschedule-date-main-${escapeAttr(appointment.id)}" value="${toDateTimeLocalInputValue(appointment.startsAt)}" />
+                <button class="mini-action" type="button" data-appointment-reschedule-confirm="${escapeAttr(appointment.id)}" data-reschedule-type="main">Confirmar</button>
+                <button class="mini-action" type="button" onclick="document.getElementById('reschedule-box-main-${escapeAttr(appointment.id)}').style.display='none'">Cancelar</button>
+              </div>
             </article>
           `;
         }
@@ -693,7 +741,7 @@ const renderAssistantIntakes = (appointments) => {
   const intakes = appointments.filter((appointment) => {
     const title = String(appointment.title || '').toLowerCase();
     const notes = String(appointment.notes || '').toLowerCase();
-    return title.includes('solicitud typebot') || notes.startsWith('origen: typebot');
+    return title.includes('solicitud typebot') || notes.startsWith('origen: typebot') || notes.includes('origen: dashboard-chatbot') || title.includes('chatbot');
   });
 
   if (!intakes.length) {
@@ -734,10 +782,19 @@ const renderAssistantIntakes = (appointments) => {
                   : ''
                 }
                 ${canAct && ['pending', 'scheduled'].includes(appointment.status)
-                  ? `<button class="mini-action" type="button" data-appointment-delete="${escapeAttr(appointment.id)}">Anular</button>`
+                  ? `
+                  <button class="mini-action" type="button" onclick="document.getElementById('reschedule-box-${escapeAttr(appointment.id)}').style.display='block'">Reprogramar</button>
+                  <button class="mini-action" type="button" data-appointment-delete="${escapeAttr(appointment.id)}">Anular</button>
+                  `
                   : ''
                 }
               </section>
+              <div id="reschedule-box-${escapeAttr(appointment.id)}" style="display:none; margin-top: 12px; padding: 12px; background: rgba(255,255,255,0.6); border-radius: 8px;">
+                <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Nueva fecha y hora:</label>
+                <input type="datetime-local" class="form-control mb-2" id="reschedule-date-${escapeAttr(appointment.id)}" value="${toDateTimeLocalInputValue(appointment.startsAt)}" />
+                <button class="mini-action" type="button" data-appointment-reschedule-confirm="${escapeAttr(appointment.id)}" data-reschedule-type="intake">Confirmar</button>
+                <button class="mini-action" type="button" onclick="document.getElementById('reschedule-box-${escapeAttr(appointment.id)}').style.display='none'">Cancelar</button>
+              </div>
             </article>
           `;
         }
@@ -747,6 +804,8 @@ const renderAssistantIntakes = (appointments) => {
 };
 
 const loadAppointments = async (signal = null) => {
+  renderSkeleton(appointmentsList, 3);
+  renderSkeleton(assistantIntakeList, 2);
   const { appointments } = await request('/appointments', { signal });
   state.appointments = appointments;
   rebuildCalendarIndexes();
@@ -1164,12 +1223,13 @@ document.addEventListener('click', async (event) => {
   const appointmentAction = event.target.closest('[data-appointment-status]');
   const appointmentAcceptAction = event.target.closest('[data-appointment-accept]');
   const appointmentDeleteAction = event.target.closest('[data-appointment-delete]');
+  const appointmentRescheduleConfirmAction = event.target.closest('[data-appointment-reschedule-confirm]');
   const signAction = event.target.closest('[data-consent-sign]');
   const revokeAction = event.target.closest('[data-consent-revoke]');
   const disableAction = event.target.closest('[data-user-disable]');
   const slotAction = event.target.closest('[data-slot-start]');
   const scheduleBlockDeleteAction = event.target.closest('[data-schedule-block-delete]');
-  const remoteAction = appointmentAction || appointmentAcceptAction || appointmentDeleteAction || signAction || revokeAction || disableAction || scheduleBlockDeleteAction;
+  const remoteAction = appointmentAction || appointmentAcceptAction || appointmentDeleteAction || appointmentRescheduleConfirmAction || signAction || revokeAction || disableAction || scheduleBlockDeleteAction;
 
   try {
     if (slotAction) {
@@ -1208,6 +1268,25 @@ document.addEventListener('click', async (event) => {
       await request(`/appointments/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
       await refreshAll();
       setFeedback('Admisión asignada y aceptada correctamente.', 'success');
+    }
+
+    if (appointmentRescheduleConfirmAction) {
+      const id = appointmentRescheduleConfirmAction.dataset.appointmentRescheduleConfirm;
+      const type = appointmentRescheduleConfirmAction.dataset.rescheduleType;
+      const inputId = type === 'main' ? `#reschedule-date-main-${escapeAttr(id)}` : `#reschedule-date-${escapeAttr(id)}`;
+      const input = document.querySelector(inputId);
+      
+      if (!input || !input.value) {
+        throw new Error('Por favor, selecciona una nueva fecha y hora.');
+      }
+      
+      const startsAt = toIsoUtcString(input.value);
+      const endsAt = toIsoUtcString(new Date(new Date(input.value).getTime() + 60 * 60 * 1000).toISOString().slice(0,16));
+
+      const body = { startsAt, endsAt };
+      await request(`/appointments/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      await refreshAll();
+      setFeedback('Cita reprogramada correctamente.', 'success');
     }
 
     if (appointmentDeleteAction) {
@@ -1505,10 +1584,23 @@ const buildAssistant = () => {
     };
   };
 
+  const showTyping = () => {
+    const typing = document.createElement('article');
+    typing.className = 'assistant-message bot assistant-typing';
+    typing.innerHTML = `<span class="assistant-dots"><span></span><span></span><span></span></span>`;
+    messages.appendChild(typing);
+    messages.scrollTop = messages.scrollHeight;
+    return typing;
+  };
+
   const addMessage = (text, who, sectionName) => {
     const message = document.createElement('article');
     message.className = `assistant-message ${who}`;
-    message.textContent = text;
+    if (who === 'bot') {
+      message.innerHTML = text; // Bot responses are controlled/safe content
+    } else {
+      message.textContent = text; // User input is always escaped
+    }
 
     if (sectionName && (state.user?.role === 'admin' || sectionName !== 'users')) {
       const action = document.createElement('button');
@@ -1526,9 +1618,18 @@ const buildAssistant = () => {
     messages.scrollTop = messages.scrollHeight;
   };
 
-  const ask = (text) => {
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const ask = async (text) => {
     addMessage(text, 'user');
     const reply = replyTo(text);
+
+    const typingDelay = Math.min(Math.max(reply.answer.length * 15, 600), 2000);
+    const typingElement = showTyping();
+    
+    await delay(typingDelay);
+    typingElement.remove();
+
     addMessage(reply.answer, 'bot', reply.section);
   };
 
@@ -2088,6 +2189,24 @@ const buildNativeChatbot = () => {
 
   startChatbot();
 };
+
+// Monitor global de red y estabilidad
+window.addEventListener('offline', () => {
+  showToast('Se ha perdido la conexión a Internet. Modo lectura activado.', 'error');
+  document.querySelectorAll('button[type="submit"], [data-remote-action]').forEach(btn => {
+    btn.dataset.wasDisabled = btn.disabled;
+    btn.disabled = true;
+  });
+});
+
+window.addEventListener('online', () => {
+  showToast('Conexión restaurada.', 'success');
+  document.querySelectorAll('button[type="submit"], [data-remote-action]').forEach(btn => {
+    if (btn.dataset.wasDisabled === 'false') {
+      btn.disabled = false;
+    }
+  });
+});
 
 // Initialize chatbot when assistant section becomes visible via event delegation
 document.querySelector('.side-rail')?.addEventListener('click', (e) => {

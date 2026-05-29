@@ -28,22 +28,29 @@ const parseResponseBody = (text) => {
   }
 };
 
-const request = async (path, options = {}) => {
+const request = async (path, options = {}, retries = 3) => {
   let response;
 
-  try {
-    response = await fetch(`${API_BASE}${path}`, {
-      cache: 'no-store',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-        ...(options.headers || {})
-      },
-      ...options
-    });
-  } catch (error) {
-    throw new Error('No se pudo conectar con PhysioSafe. Revisa que el servidor este activo y vuelve a intentarlo.');
+  for (let i = 0; i < retries; i++) {
+    try {
+      response = await fetch(`${API_BASE}${path}`, {
+        cache: 'no-store',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          ...(options.headers || {})
+        },
+        ...options
+      });
+      break; // Petición exitosa, salir del bucle de reintentos
+    } catch (error) {
+      if (i === retries - 1) {
+        throw new Error('No se pudo conectar con PhysioSafe. Revisa tu conexión a internet.');
+      }
+      // Exponential Backoff: espera progresiva (500ms, 1000ms, 2000ms...)
+      await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, i)));
+    }
   }
 
   const text = response.status === 204 || response.status === 304 ? '' : await response.text();
@@ -94,37 +101,61 @@ modeButtons.forEach((button) => {
 
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  const btn = loginForm.querySelector('button[type="submit"]');
+  if (btn) btn.disabled = true;
   setFeedback('Validando credenciales...');
 
   try {
     const payload = readForm(loginForm);
-    const session = await request('/auth/login', {
+    const authResult = await request('/auth/login', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
     setFeedback('Acceso concedido. Preparando dashboard...', 'success');
-    persistSession(session);
+    persistSession(authResult);
   } catch (error) {
+    if (btn) btn.disabled = false;
     setFeedback(error.message, 'error');
   }
 });
 
 registerForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  const btn = registerForm.querySelector('button[type="submit"]');
+  if (btn) btn.disabled = true;
   setFeedback(registerRole === 'admin' ? 'Creando primer administrador...' : 'Creando cuenta de paciente...');
 
   try {
     const payload = readForm(registerForm);
     payload.role = registerRole;
-    const session = await request('/auth/register', {
+    const authResult = await request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
     setFeedback(registerRole === 'admin' ? 'Administrador creado. Inicializando panel...' : 'Cuenta creada. Entrando...', 'success');
-    persistSession(session);
+    persistSession(authResult);
   } catch (error) {
+    if (btn) btn.disabled = false;
     setFeedback(error.message, 'error');
   }
+});
+
+// Monitor de estado de red
+window.addEventListener('offline', () => {
+  setFeedback('Se ha perdido la conexión a Internet. Esperando reconexión...', 'error');
+  document.querySelectorAll('button[type="submit"]').forEach(btn => {
+    btn.dataset.wasDisabled = btn.disabled;
+    btn.disabled = true;
+  });
+});
+
+window.addEventListener('online', () => {
+  setFeedback('Conexión restaurada.', 'success');
+  document.querySelectorAll('button[type="submit"]').forEach(btn => {
+    if (btn.dataset.wasDisabled === 'false') {
+      btn.disabled = false;
+    }
+  });
 });
 
 if (session.getToken()) {
@@ -255,84 +286,64 @@ const initMotionSystem = () => {
 
 const assistantKnowledge = [
   {
-    keywords: ['admin', 'primer usuario', 'inicial'],
+    keywords: ['admin', 'primer usuario', 'inicial', 'configurar'],
     answer:
-      'Si la base esta vacia, el registro cambia a Primer admin. Crea ese usuario una sola vez; despues gestionara fisios, pacientes y permisos desde el dashboard.'
+      'PhysioSafe detecta automáticamente si la base de datos está vacía y permite crear un administrador maestro (Primer Admin). Este usuario tiene acceso total al panel de control para gestionar fisioterapeutas, pacientes, servicios y la configuración general de la clínica de forma segura.'
   },
   {
-    keywords: ['permisos', 'roles', 'que ve cada rol'],
+    keywords: ['permisos', 'roles', 'privacidad', 'seguridad'],
     answer:
-      'PhysioSafe separa permisos: admin gestiona usuarios y configuracion, fisios trabajan con agenda clinica, y pacientes solicitan citas y consultan sus documentos.'
+      'La seguridad es nuestra prioridad. PhysioSafe utiliza un sistema de Control de Acceso Basado en Roles (RBAC): Los administradores tienen control total; los fisioterapeutas acceden exclusivamente a las agendas y expedientes clínicos de sus pacientes asignados; y los pacientes solo pueden visualizar su propia información, citas y consentimientos.'
   },
   {
-    keywords: ['registro', 'registrar', 'cuenta', 'sign in', 'signup'],
+    keywords: ['registro', 'registrar', 'cuenta', 'nuevo paciente', 'alta'],
     answer:
-      'El registro publico es para pacientes. Rellena nombre, email y password; entraras directamente al panel como paciente.'
+      'El registro a través del portal público está diseñado para ofrecer una experiencia sin fricciones a los nuevos pacientes. Al proporcionar su nombre, correo electrónico y contraseña, el paciente obtiene acceso inmediato a su panel privado, desde donde podrá gestionar sus citas y firmar documentos.'
   },
   {
-    keywords: ['paciente', 'cliente', 'alta paciente'],
+    keywords: ['paciente', 'cliente', 'panel paciente'],
     answer:
-      'Un paciente puede crear su cuenta desde Registro paciente. Despues podra entrar al dashboard, solicitar citas y revisar reportes o consentimientos.'
+      'El Panel del Paciente de PhysioSafe es un entorno seguro e intuitivo. Desde él, sus pacientes podrán solicitar nuevas citas, consultar su historial clínico, revisar pautas de ejercicios terapéuticos y firmar digitalmente los consentimientos informados antes de acudir a la consulta.'
   },
   {
-    keywords: ['fisio', 'fisioterapeuta', 'trabajador', 'empleado'],
+    keywords: ['fisio', 'fisioterapeuta', 'equipo', 'profesional'],
     answer:
-      'Los fisioterapeutas no se registran libremente. Los crea un admin desde Usuarios para mantener el control de acceso clinico.'
+      'La gestión del equipo clínico está centralizada. Los fisioterapeutas son dados de alta exclusivamente por el administrador desde el módulo de "Usuarios". Esto garantiza que solo el personal autorizado tenga acceso al entorno clínico y a los historiales de los pacientes.'
   },
   {
     keywords: ['login', 'entrar', 'acceso', 'iniciar sesion'],
     answer:
-      'Usa Login si ya tienes cuenta. Admin, fisios y pacientes entran por el mismo formulario, pero cada rol ve permisos distintos.'
+      'PhysioSafe unifica el acceso mediante un portal de Login único e inteligente. El sistema enruta automáticamente a administradores, fisioterapeutas y pacientes a sus respectivos paneles de control basándose en sus credenciales, garantizando la confidencialidad de los datos.'
   },
   {
-    keywords: ['password', 'contrasena', 'credenciales'],
+    keywords: ['cita', 'citas', 'agenda', 'reservar', 'pedir cita'],
     answer:
-      'La password debe tener al menos 8 caracteres. Si ya tienes una cuenta creada por la clinica, entra con el email asignado.'
+      'Nuestro módulo de Agenda Inteligente previene solapamientos y optimiza el tiempo de la clínica. El equipo clínico puede gestionar el calendario completo, mientras que los pacientes pueden visualizar los huecos disponibles en tiempo real y solicitar citas que quedarán pendientes de confirmación.'
   },
   {
-    keywords: ['cita', 'citas', 'agenda', 'solicitar cita', 'pedir cita'],
+    keywords: ['consentimiento', 'firmar', 'reportes', 'informe', 'legal'],
     answer:
-      'Las citas se gestionan dentro del dashboard. Admin y fisios pueden crearlas, y los pacientes pueden solicitar una cita pendiente con fisioterapeuta y hueco disponible.'
+      'Digitalizamos por completo la gestión documental. Los fisioterapeutas pueden generar reportes de evolución detallados y emitir consentimientos informados. Los pacientes reciben notificaciones en su portal para firmar estos documentos digitalmente con total validez legal y seguridad.'
   },
   {
-    keywords: ['disponibilidad', 'dias disponibles', 'huecos', 'horario'],
+    keywords: ['admision', 'triaje', 'primera visita', 'asistente'],
     answer:
-      'Dentro del dashboard, al elegir fisioterapeuta se muestran huecos disponibles. Los dias bloqueados, fines de semana o completos no se pueden reservar.'
+      'Nuestro Asistente de Admisión Inteligente (Triaje Digital) interactúa con los pacientes antes de su visita. Recopila información vital (motivo, nivel de dolor, zona afectada y señales de alerta) y la estructura automáticamente en el expediente. Esto permite al fisioterapeuta llegar a la primera sesión con un contexto clínico completo.'
   },
   {
-    keywords: ['calendario', 'horario', 'disponibilidad'],
+    keywords: ['urgente', 'urgencia', 'alerta', 'hormigueo', 'fiebre', 'red flag'],
     answer:
-      'El calendario esta dentro del dashboard y muestra las citas por mes. Sirve para revisar carga de trabajo, proximas sesiones y estados.'
+      'El sistema de Triaje incluye detección de "Red Flags" (señales de alerta médica). Si un paciente reporta síntomas como pérdida de fuerza, fiebre, o traumatismos graves, el sistema marca la admisión como prioritaria y sugiere al paciente buscar atención médica urgente, protegiendo tanto al paciente como a la clínica.'
   },
   {
-    keywords: ['consentimiento', 'firmar', 'reportes', 'informe'],
+    keywords: ['tratamiento', 'rehabilitacion', 'terapia', 'servicios'],
     answer:
-      'Reportes y consentimientos estan en el panel. El equipo clinico emite documentos, y el paciente puede consultar informes y firmar consentimientos pendientes.'
+      'PhysioSafe es una solución integral diseñada para clínicas modernas. Soporta la gestión de todo tipo de servicios: desde valoración inicial y terapia manual, hasta rehabilitación postoperatoria, readaptación deportiva y ejercicio terapéutico, adaptándose al flujo de trabajo de cada especialista.'
   },
   {
-    keywords: ['typebot', 'bot', 'asistente', 'admision', 'triaje'],
+    keywords: ['clinica', 'physiosafe', 'que es', 'ventajas', 'software'],
     answer:
-      'Typebot esta integrado para admisiones completas. Recoge identidad, contacto, motivo, zona afectada, dolor, urgencia, alertas clinicas, tratamiento previo y disponibilidad; despues PhysioSafe crea o actualiza la ficha y puede preparar una cita pendiente.'
-  },
-  {
-    keywords: ['dolor', 'primera visita', 'motivo consulta'],
-    answer:
-      'El asistente de admision recoge motivo, dolor, evolucion, zona afectada, urgencia y senales de alerta. Asi la clinica llega a la primera visita con una orientacion inicial mas util.'
-  },
-  {
-    keywords: ['urgente', 'urgencia', 'alerta', 'hormigueo', 'traumatismo', 'fiebre'],
-    answer:
-      'Si hay dolor incapacitante, perdida de fuerza, hormigueo progresivo, fiebre, traumatismo importante o perdida de control de esfinteres, el asistente marca revision prioritaria y recomienda contactar con urgencias si la situacion lo requiere.'
-  },
-  {
-    keywords: ['tratamiento', 'rehabilitacion', 'terapia', 'servicios', 'lesion'],
-    answer:
-      'PhysioSafe esta pensado para organizar valoracion inicial, rehabilitacion funcional, terapia manual, ejercicio terapeutico, readaptacion deportiva y seguimiento de la evolucion clinica.'
-  },
-  {
-    keywords: ['clinica', 'empresa', 'physiosafe', 'que es'],
-    answer:
-      'PhysioSafe es un entorno digital para una clinica de fisioterapia: coordina acceso, citas, admision, reportes y consentimientos para que el paciente y el equipo trabajen con informacion clara.'
+      'PhysioSafe es un ecosistema digital premium para clínicas de fisioterapia. Transformamos la experiencia del paciente y optimizamos la gestión operativa integrando citas, triaje inteligente, historiales clínicos, y firma de documentos en una plataforma segura, moderna y altamente eficiente.'
   }
 ];
 
@@ -353,13 +364,13 @@ const buildAssistant = () => {
         </button>
       </header>
       <section class="assistant-messages" aria-live="polite">
-        <article class="assistant-message bot">Hola. Soy el asistente de PhysioSafe. Puedo orientarte sobre acceso, citas, admision, tratamientos de fisioterapia, reportes y consentimientos.</article>
+        <article class="assistant-message bot">👋 ¡Hola! Soy el asistente virtual de PhysioSafe.<br><br>Estoy aquí para guiarte. Pregúntame sobre nuestro software, gestión de citas, triaje inteligente, expedientes clínicos o cualquier duda sobre nuestra plataforma.</article>
       </section>
       <nav class="assistant-suggestions" aria-label="Preguntas sugeridas">
-        <button type="button">Como pide cita un paciente?</button>
-        <button type="button">Que es PhysioSafe?</button>
-        <button type="button">Que tratamientos se gestionan?</button>
-        <button type="button">Como funciona la admision?</button>
+        <button type="button">¿Qué es PhysioSafe?</button>
+        <button type="button">¿Cómo funciona la agenda?</button>
+        <button type="button">¿Qué es el Triaje Digital?</button>
+        <button type="button">¿Es seguro para mis pacientes?</button>
       </nav>
       <form class="assistant-form">
         <label>
@@ -386,26 +397,60 @@ const buildAssistant = () => {
     toggle.setAttribute('aria-expanded', String(open));
   };
 
+  const normalizeText = (text) => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\w\s]/gi, '');
+  };
+
   const replyTo = (text) => {
-    const normalized = text.toLowerCase();
-    const match = assistantKnowledge.find((item) => item.keywords.some((keyword) => normalized.includes(keyword)));
+    const normalized = normalizeText(text);
+    const match = assistantKnowledge.find((item) =>
+      item.keywords.some((keyword) => normalized.includes(normalizeText(keyword)))
+    );
     return (
       match?.answer ||
-      'Puedo ayudarte con informacion sobre PhysioSafe, acceso, citas, admision, tratamientos de fisioterapia, reportes y consentimientos.'
+      'No he encontrado una respuesta exacta a tu consulta. Por favor, intenta reformular tu pregunta usando términos clave como "citas", "seguridad", "admisión", "pacientes", o pregunta "¿Qué es PhysioSafe?".'
     );
+  };
+
+  const showTyping = () => {
+    const typing = document.createElement('article');
+    typing.className = 'assistant-message bot assistant-typing';
+    typing.innerHTML = `<span class="assistant-dots"><span></span><span></span><span></span></span>`;
+    messages.appendChild(typing);
+    messages.scrollTop = messages.scrollHeight;
+    return typing;
   };
 
   const addMessage = (text, who) => {
     const message = document.createElement('article');
     message.className = `assistant-message ${who}`;
-    message.textContent = text;
+    if (who === 'bot') {
+      message.innerHTML = text; // Bot responses are controlled/safe HTML
+    } else {
+      message.textContent = text; // User input is always escaped
+    }
     messages.appendChild(message);
     messages.scrollTop = messages.scrollHeight;
   };
 
-  const ask = (text) => {
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const ask = async (text) => {
     addMessage(text, 'user');
-    addMessage(replyTo(text), 'bot');
+    const answer = replyTo(text);
+    
+    // Simulate natural typing delay based on response length
+    const typingDelay = Math.min(Math.max(answer.length * 15, 600), 2000);
+    const typingElement = showTyping();
+    
+    await delay(typingDelay);
+    typingElement.remove();
+    
+    addMessage(answer, 'bot');
   };
 
   toggle.addEventListener('click', () => setOpen(panel.hidden));

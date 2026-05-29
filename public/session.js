@@ -113,3 +113,56 @@ window.physioSafeSession = {
     storageAdapter.remove(SESSION_USER_KEY);
   }
 };
+
+/**
+ * Global Toast Notification System
+ * type can be: 'success', 'error', 'warning', 'info'
+ */
+window.showToast = (message, type = 'info') => {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `physio-toast physio-toast--${type}`;
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', 'assertive');
+
+  let iconClass = 'fa-solid fa-circle-info';
+  if (type === 'success') iconClass = 'fa-solid fa-circle-check';
+  if (type === 'error') iconClass = 'fa-solid fa-circle-xmark';
+  if (type === 'warning') iconClass = 'fa-solid fa-triangle-exclamation';
+
+  toast.innerHTML = `
+    <div class="physio-toast-icon">
+      <i class="${iconClass}"></i>
+    </div>
+    <div class="physio-toast-content">${escapeHtml(message)}</div>
+  `;
+
+  // Use the escapeHtml from dashboard if available, else a fallback
+  function escapeHtml(text) {
+    return String(text || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  container.appendChild(toast);
+
+  // Auto-remove after 4 seconds
+  setTimeout(() => {
+    toast.classList.add('toast-hiding');
+    toast.addEventListener('animationend', () => {
+      toast.remove();
+      if (container.childNodes.length === 0) {
+        container.remove();
+      }
+    });
+  }, 4000);
+};

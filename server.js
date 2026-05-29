@@ -1,5 +1,14 @@
 require('dotenv').config();
 
+// Prevención de caídas globales (Graceful Error Handling)
+process.on('uncaughtException', (error) => {
+  console.error('CRITICAL: Uncaught Exception detectada:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('CRITICAL: Unhandled Rejection detectada en:', promise, 'razón:', reason);
+});
+
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
@@ -98,8 +107,42 @@ validateRuntimeConfig();
 
 app.use(
   helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://cdn.jsdelivr.net",
+          "https://cdnjs.cloudflare.com"
+        ],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://fonts.googleapis.com",
+          "https://cdn.jsdelivr.net",
+          "https://cdnjs.cloudflare.com"
+        ],
+        fontSrc: [
+          "'self'",
+          "data:",
+          "https://fonts.gstatic.com",
+          "https://cdnjs.cloudflare.com"
+        ],
+        imgSrc: ["'self'", "data:", "blob:", "https://physiosafe.es"],
+        connectSrc: ["'self'", "https://*.ngrok-free.dev", "https://*.ngrok.app", "https://*.ngrok.io"],
+        frameAncestors: ["'none'"]
+      }
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true
+    },
+    frameguard: {
+      action: 'deny'
+    }
   })
 );
 
@@ -126,6 +169,35 @@ app.use(
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+
+// Middleware contra HTTP Parameter Pollution (HPP)
+app.use((req, res, next) => {
+  if (req.query) {
+    for (const key in req.query) {
+      if (Array.isArray(req.query[key])) {
+        req.query[key] = req.query[key][req.query[key].length - 1]; // Toma el último valor
+      }
+    }
+  }
+  if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
+    for (const key in req.body) {
+      if (Array.isArray(req.body[key])) {
+        // En aplicaciones estándar, a menos que el endpoint espere un array explícito, se previene HPP.
+        // Como PhysioSafe usa JSON estándar, req.body de arrays suele ser legítimo si el Content-Type es JSON.
+        // HPP es más crítico para query parameters y application/x-www-form-urlencoded.
+      }
+    }
+  }
+  next();
+});
+
+// Rate Limiting Global para la API
+app.use('/api', createRateLimiter({
+  windowMs: 5 * 60 * 1000, // 5 minutos
+  maxRequests: 300,        // 300 peticiones globales por IP
+  message: 'Límite global de peticiones excedido. Espera unos minutos.'
+}));
+
 app.use(morgan(isProduction ? 'combined' : 'dev'));
 app.use(
   express.static(path.join(__dirname, 'public'), {

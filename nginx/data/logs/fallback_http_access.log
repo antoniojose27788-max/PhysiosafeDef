@@ -1,2 +1,5 @@
 [24/May/2026:17:10:15 +0000] 200 - GET http physiosafe.servebeer.com "/" [Client 10.0.14.101] [Length 568] [Gzip 1.86] "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36" "-"
 [24/May/2026:17:51:12 +0000] 200 - GET http porous-purge-unlaced.ngrok-free.dev "/" [Client 172.18.0.1] [Length 568] [Gzip 1.86] "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1" "-"
+[28/May/2026:09:07:54 +0000] 200 - GET http pc-1769083196 "/" [Client 172.18.0.1] [Length 568] [Gzip 1.86] "Mozilla/5.0" "-"
+[28/May/2026:09:07:54 +0000] 404 - GET http localhost-nginx-proxy-manager "/nice%20ports%2C/Tri%6Eity.txt%2ebak" [Client 172.18.0.1] [Length 150] [Gzip -] "-" "-"
+[28/May/2026:09:07:54 +0000] 200 - GET http localhost-nginx-proxy-manager "/" [Client 172.18.0.1] [Length 1033] [Gzip -] "-" "-"

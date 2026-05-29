@@ -50,8 +50,8 @@ body {
 }
 
 @keyframes page-enter {
-  0% { opacity: 0; transform: translateY(10px); }
-  100% { opacity: 1; transform: none; }
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 .motion-ready [data-animate] {
@@ -2390,40 +2390,82 @@ body.menu-open .floating-assistant {
   isolation: isolate;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  min-height: 54px;
-  padding: 0 18px;
-  border: 0;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 999px;
   color: #fff;
-  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
-  box-shadow: 0 22px 54px rgba(12, 143, 136, 0.36);
-  font-weight: 900;
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, var(--brand-light), var(--brand), var(--brand-dark));
+  box-shadow: 0 10px 30px rgba(12, 143, 136, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
 }
 
 .assistant-toggle i {
-  animation: assistant-icon-pulse 3s ease-in-out infinite;
+  font-size: 1.15rem;
+  animation: assistant-icon-float 3s ease-in-out infinite;
+}
+
+@media (max-width: 576px) {
+  .floating-assistant {
+    right: 16px;
+    bottom: 16px;
+  }
+  
+  .assistant-toggle {
+    min-height: 56px;
+    min-width: 56px;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  .assistant-toggle span {
+    display: none;
+  }
+
+  .assistant-toggle i {
+    font-size: 1.4rem;
+  }
+}
+
+@keyframes assistant-icon-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 
 .assistant-toggle::before {
   position: absolute;
-  inset: -5px;
+  inset: -4px;
   z-index: -1;
   content: "";
   border-radius: 999px;
-  background: linear-gradient(135deg, rgba(68, 199, 189, 0.38), rgba(244, 184, 96, 0.32));
-  opacity: 0.86;
-  animation: breathe 3.2s ease-in-out infinite;
+  background: linear-gradient(135deg, var(--accent), var(--neon), var(--brand-light));
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  filter: blur(12px);
 }
 
 .assistant-toggle:hover {
-  transform: translateY(-4px) scale(1.03);
-  box-shadow: 0 28px 70px rgba(12, 143, 136, 0.54);
+  transform: translateY(-6px) scale(1.05);
+  box-shadow: 0 20px 48px rgba(12, 143, 136, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.6);
+  background: linear-gradient(135deg, var(--neon), var(--brand-light), var(--brand));
+  color: var(--ink);
+}
+
+.assistant-toggle:hover::before {
+  opacity: 0.8;
+  animation: breathe 3s ease-in-out infinite;
 }
 
 .assistant-chat {
   width: min(400px, calc(100vw - 32px));
+  max-height: min(500px, calc(100vh - 100px)); /* Allow tall enough to show all elements but keep X visible */
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.65);
@@ -2457,7 +2499,7 @@ body.menu-open .floating-assistant {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-height: 380px;
+  flex: 1 1 auto;
   padding: 24px;
   overflow-y: auto;
   scroll-behavior: smooth;
@@ -2465,28 +2507,58 @@ body.menu-open .floating-assistant {
 
 .assistant-message {
   max-width: 88%;
-  padding: 14px 18px;
+  padding: 16px 20px;
   border-radius: 20px;
   font-size: 0.95rem;
-  line-height: 1.5;
-  animation: chatbot-msg-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  line-height: 1.6;
+  animation: chatbot-msg-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  position: relative;
 }
 
 .assistant-message.bot {
   align-self: flex-start;
   color: var(--ink);
-  background: #ffffff;
-  border: 1px solid rgba(12, 143, 136, 0.08);
-  box-shadow: 0 8px 24px rgba(12, 143, 136, 0.06);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(12, 143, 136, 0.15);
+  box-shadow: 0 10px 30px rgba(9, 43, 49, 0.08), inset 0 2px 0 rgba(255, 255, 255, 0.9);
   border-bottom-left-radius: 6px;
 }
 
 .assistant-message.user {
   align-self: flex-end;
   color: #ffffff;
-  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
-  box-shadow: 0 8px 24px rgba(12, 143, 136, 0.24);
+  background: linear-gradient(135deg, var(--brand-light), var(--brand), var(--brand-dark));
+  box-shadow: 0 12px 28px rgba(12, 143, 136, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.2);
   border-bottom-right-radius: 6px;
+}
+
+.assistant-typing {
+  padding: 16px 22px !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+}
+
+.assistant-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.assistant-dots span {
+  width: 6px;
+  height: 6px;
+  background: var(--brand);
+  border-radius: 50%;
+  animation: typing-bounce 1.4s infinite ease-in-out both;
+}
+
+.assistant-dots span:nth-child(1) { animation-delay: -0.32s; }
+.assistant-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
 }
 
 .assistant-suggestions {
@@ -4158,7 +4230,7 @@ body.menu-open .floating-assistant {
 
 .native-chatbot-shell .assistant-chat {
   width: 380px;
-  height: 650px;
+  height: 520px;
   max-height: calc(100vh - 100px);
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 24px;
@@ -4606,3 +4678,135 @@ body.menu-open .floating-assistant {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+ *  7. TOAST NOTIFICATIONS (Global)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.physio-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 300px;
+  max-width: 90vw;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12), inset 0 2px 4px rgba(255, 255, 255, 0.8);
+  pointer-events: auto;
+  animation: toast-slide-up 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  will-change: transform, opacity;
+}
+
+.physio-toast.toast-hiding {
+  animation: toast-fade-out 0.3s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards;
+}
+
+.physio-toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.physio-toast-content {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+/* Variants */
+.physio-toast--success .physio-toast-icon {
+  background: rgba(45, 159, 111, 0.15);
+  color: #2d9f6f;
+}
+.physio-toast--error .physio-toast-icon {
+  background: rgba(219, 111, 87, 0.15);
+  color: #db6f57;
+}
+.physio-toast--info .physio-toast-icon {
+  background: rgba(12, 143, 136, 0.15);
+  color: var(--brand);
+}
+.physio-toast--warning .physio-toast-icon {
+  background: rgba(244, 184, 96, 0.15);
+  color: #d18a17;
+}
+
+@keyframes toast-slide-up {
+  0% { opacity: 0; transform: translateY(30px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toast-fade-out {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(20px) scale(0.9); }
+}
+
+@media (max-width: 576px) {
+  #toast-container {
+    bottom: 80px;
+    width: 100%;
+    padding: 0 16px;
+  }
+
+  .physio-toast {
+    min-width: 100%;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ *  8. EMPTY STATES
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 24px;
+  border: 1px dashed rgba(12, 143, 136, 0.3);
+  margin: 20px 0;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  color: var(--brand-light);
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.empty-state h3 {
+  font-size: 1.25rem;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  max-width: 300px;
+}

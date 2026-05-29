@@ -684,6 +684,8 @@ const renderAppointments = (appointments) => {
     appointmentsList.innerHTML = appointments
       .map(
         (appointment, index) => {
+          const activePhysios = (state.physiotherapists.length ? state.physiotherapists : state.users)
+            .filter((user) => user.role === 'fisioterapeuta' && user.isActive !== false);
           const isTypebot = String(appointment.title || '').toLowerCase().includes('solicitud typebot') ||
             String(appointment.notes || '').toLowerCase().startsWith('origen: typebot');
           const intakeMeta = isTypebot ? renderIntakeMeta(appointment.notes) : '';
@@ -703,7 +705,7 @@ const renderAppointments = (appointments) => {
                   ${!appointment.physiotherapistId ? `
                     <select class="form-select form-select-sm" style="display:inline-block; width: auto; min-width: 150px;" id="assign-physio-${escapeAttr(appointment.id)}">
                       <option value="">Selecciona Fisio...</option>
-                      ${(state.users || []).filter(u => u.role === 'fisioterapeuta' && u.isActive).map(p => `<option value="${escapeAttr(p.id)}">${escapeHtml(p.name)}</option>`).join('')}
+                      ${activePhysios.map(p => `<option value="${escapeAttr(p.id)}">${escapeHtml(p.name)}</option>`).join('')}
                     </select>
                   ` : ''}
                   <button class="mini-action" type="button" data-appointment-accept="${escapeAttr(appointment.id)}">${appointment.physiotherapistId ? 'Aceptar' : 'Asignar y Aceptar'}</button>
@@ -712,7 +714,7 @@ const renderAppointments = (appointments) => {
                 ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:completed">Completar</button>` : ''}
                 ${['admin', 'fisioterapeuta'].includes(state.user.role) ? `<button class="mini-action" type="button" data-appointment-status="${escapeAttr(appointment.id)}:validated">Validar</button>` : ''}
                 ${['admin', 'fisioterapeuta'].includes(state.user.role) && ['pending', 'scheduled'].includes(appointment.status) ? `
-                  <button class="mini-action" type="button" onclick="document.getElementById('reschedule-box-main-${escapeAttr(appointment.id)}').style.display='block'">Reprogramar</button>
+                  <button class="mini-action" type="button" data-reschedule-toggle="reschedule-box-main-${escapeAttr(appointment.id)}" data-reschedule-open="true">Reprogramar</button>
                   <button class="mini-action" type="button" data-appointment-delete="${escapeAttr(appointment.id)}">Anular</button>
                 ` : ''}
                 ${state.user.role === 'paciente' && ['pending', 'scheduled'].includes(appointment.status) && new Date(appointment.startsAt) > new Date() ? `
@@ -723,7 +725,7 @@ const renderAppointments = (appointments) => {
                 <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Nueva fecha y hora:</label>
                 <input type="datetime-local" class="form-control mb-2" id="reschedule-date-main-${escapeAttr(appointment.id)}" value="${toDateTimeLocalInputValue(appointment.startsAt)}" />
                 <button class="mini-action" type="button" data-appointment-reschedule-confirm="${escapeAttr(appointment.id)}" data-reschedule-type="main">Confirmar</button>
-                <button class="mini-action" type="button" onclick="document.getElementById('reschedule-box-main-${escapeAttr(appointment.id)}').style.display='none'">Cancelar</button>
+                <button class="mini-action" type="button" data-reschedule-toggle="reschedule-box-main-${escapeAttr(appointment.id)}" data-reschedule-open="false">Cancelar</button>
               </div>
             </article>
           `;
@@ -755,7 +757,8 @@ const renderAssistantIntakes = (appointments) => {
         (appointment, index) => {
           const meta = renderIntakeMeta(appointment.notes);
           const canAct = ['admin', 'fisioterapeuta'].includes(state.user.role);
-          const activePhysios = (state.users || []).filter(u => u.role === 'fisioterapeuta' && u.isActive);
+          const activePhysios = (state.physiotherapists.length ? state.physiotherapists : state.users)
+            .filter((user) => user.role === 'fisioterapeuta' && user.isActive !== false);
           const physioSelectHtml = !appointment.physiotherapistId ? `
             <select class="form-select form-select-sm" style="display:inline-block; width: auto; min-width: 150px;" id="assign-physio-${escapeAttr(appointment.id)}">
               <option value="">Selecciona Fisio...</option>
@@ -783,7 +786,7 @@ const renderAssistantIntakes = (appointments) => {
                 }
                 ${canAct && ['pending', 'scheduled'].includes(appointment.status)
                   ? `
-                  <button class="mini-action" type="button" onclick="document.getElementById('reschedule-box-${escapeAttr(appointment.id)}').style.display='block'">Reprogramar</button>
+                  <button class="mini-action" type="button" data-reschedule-toggle="reschedule-box-${escapeAttr(appointment.id)}" data-reschedule-open="true">Reprogramar</button>
                   <button class="mini-action" type="button" data-appointment-delete="${escapeAttr(appointment.id)}">Anular</button>
                   `
                   : ''
@@ -793,7 +796,7 @@ const renderAssistantIntakes = (appointments) => {
                 <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Nueva fecha y hora:</label>
                 <input type="datetime-local" class="form-control mb-2" id="reschedule-date-${escapeAttr(appointment.id)}" value="${toDateTimeLocalInputValue(appointment.startsAt)}" />
                 <button class="mini-action" type="button" data-appointment-reschedule-confirm="${escapeAttr(appointment.id)}" data-reschedule-type="intake">Confirmar</button>
-                <button class="mini-action" type="button" onclick="document.getElementById('reschedule-box-${escapeAttr(appointment.id)}').style.display='none'">Cancelar</button>
+                <button class="mini-action" type="button" data-reschedule-toggle="reschedule-box-${escapeAttr(appointment.id)}" data-reschedule-open="false">Cancelar</button>
               </div>
             </article>
           `;
@@ -1224,6 +1227,7 @@ document.addEventListener('click', async (event) => {
   const appointmentAcceptAction = event.target.closest('[data-appointment-accept]');
   const appointmentDeleteAction = event.target.closest('[data-appointment-delete]');
   const appointmentRescheduleConfirmAction = event.target.closest('[data-appointment-reschedule-confirm]');
+  const rescheduleToggleAction = event.target.closest('[data-reschedule-toggle]');
   const signAction = event.target.closest('[data-consent-sign]');
   const revokeAction = event.target.closest('[data-consent-revoke]');
   const disableAction = event.target.closest('[data-user-disable]');
@@ -1232,6 +1236,14 @@ document.addEventListener('click', async (event) => {
   const remoteAction = appointmentAction || appointmentAcceptAction || appointmentDeleteAction || appointmentRescheduleConfirmAction || signAction || revokeAction || disableAction || scheduleBlockDeleteAction;
 
   try {
+    if (rescheduleToggleAction) {
+      const target = document.getElementById(rescheduleToggleAction.dataset.rescheduleToggle);
+      if (target) {
+        target.style.display = rescheduleToggleAction.dataset.rescheduleOpen === 'true' ? 'block' : 'none';
+      }
+      return;
+    }
+
     if (slotAction) {
       const form = document.querySelector('#appointmentForm');
       form.elements.startsAt.value = toDateTimeLocalInputValue(slotAction.dataset.slotStart);
@@ -1259,10 +1271,15 @@ document.addEventListener('click', async (event) => {
       const id = appointmentAcceptAction.dataset.appointmentAccept;
       const select = document.querySelector(`#assign-physio-${escapeAttr(id)}`);
       const physiotherapistId = select ? select.value : null;
+      const appointment = state.appointments.find((item) => item.id === id);
 
       const body = { status: 'scheduled' };
       if (physiotherapistId) {
         body.physiotherapistId = physiotherapistId;
+      } else if (!appointment?.physiotherapistId && state.user?.role === 'fisioterapeuta') {
+        body.physiotherapistId = state.user.id;
+      } else if (!appointment?.physiotherapistId) {
+        throw new Error('Selecciona un fisioterapeuta antes de programar la admision.');
       }
 
       await request(`/appointments/${id}`, { method: 'PATCH', body: JSON.stringify(body) });

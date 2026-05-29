@@ -47,6 +47,24 @@ const getAllowedCorsOrigins = () => {
   ]);
 };
 
+const isTrustedTunnelOrigin = (origin) => {
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== 'https:') return false;
+
+    return (
+      hostname === 'ngrok-free.dev' ||
+      hostname.endsWith('.ngrok-free.dev') ||
+      hostname === 'ngrok.app' ||
+      hostname.endsWith('.ngrok.app') ||
+      hostname === 'ngrok.io' ||
+      hostname.endsWith('.ngrok.io')
+    );
+  } catch {
+    return false;
+  }
+};
+
 const validateRuntimeConfig = () => {
   const sensitiveEntries = [
     ['JWT_SECRET', process.env.JWT_SECRET],
@@ -152,7 +170,7 @@ app.use(
       const allowedOrigins = getAllowedCorsOrigins();
 
       // AÑADIMOS EL PASE VIP PARA NGROK AQUÍ
-      if (!origin || allowedOrigins.has(origin) || origin.includes('ngrok-free.dev')) {
+      if (!origin || allowedOrigins.has(origin) || isTrustedTunnelOrigin(origin)) {
         callback(null, true);
         return;
       }

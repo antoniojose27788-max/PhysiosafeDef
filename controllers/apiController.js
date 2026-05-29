@@ -620,7 +620,7 @@ const receiveTypebotIntake = asyncHandler(async (req, res) => {
         });
         slot = requestedSlot;
       } catch (e) {
-        console.log(`Requested slot not available: ${e.message}. Falling back to finding first available slot.`);
+        console.warn(`Requested slot not available: ${e.message}. Falling back to finding first available slot.`);
       }
     }
 
@@ -1152,13 +1152,18 @@ const updateAppointment = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Estado de cita invalido.' });
   }
 
+  const nextPhysioId = payload.physiotherapistId || appointment.physiotherapistId;
+
+  if (payload.status === 'scheduled' && !nextPhysioId) {
+    return res.status(400).json({ message: 'Asigna un fisioterapeuta antes de programar la cita.' });
+  }
+
   if (payload.status === 'validated' && !isAdmin(req.user) && !isPhysio(req.user)) {
     return res.status(403).json({ message: 'Solo el equipo clinico puede validar una cita.' });
   }
 
   const nextStartsAt = payload.startsAt || appointment.startsAt;
   const nextEndsAt = payload.endsAt || appointment.endsAt;
-  const nextPhysioId = payload.physiotherapistId || appointment.physiotherapistId;
 
   if (new Date(nextStartsAt) >= new Date(nextEndsAt)) {
     return res.status(400).json({ message: 'La cita debe terminar despues de empezar.' });

@@ -1183,12 +1183,11 @@ const updateAppointment = asyncHandler(async (req, res) => {
   }
 
   if (
-    payload.status &&
-    ['completed', 'validated'].includes(payload.status) &&
+    payload.status === 'completed' &&
     new Date(nextEndsAt) > new Date() &&
     !isAdmin(req.user)
   ) {
-    return res.status(400).json({ message: 'No se puede marcar la cita como completada o validada antes de que haya concluido su hora de fin.' });
+    return res.status(400).json({ message: 'No se puede marcar la cita como completada antes de que haya concluido su hora de fin.' });
   }
 
   await sequelize.transaction(async (transaction) => {

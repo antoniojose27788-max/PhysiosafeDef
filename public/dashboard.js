@@ -675,14 +675,17 @@ const renderIntakeMeta = (notes) => {
 
 const renderAppointments = (appointments) => {
   if (!appointmentsList) return;
-  if (!appointments.length) {
-    renderEmpty(appointmentsList, 'Sin citas');
-    renderAssistantIntakes([]);
+  const now = new Date();
+  const activeAppointments = appointments.filter(a => new Date(a.endsAt) > now);
+
+  if (!activeAppointments.length) {
+    renderEmpty(appointmentsList, 'Sin citas pendientes o programadas para mostrar.');
+    renderAssistantIntakes(activeAppointments);
     return;
   }
 
   scheduleUpdate(() => {
-    appointmentsList.innerHTML = appointments
+    appointmentsList.innerHTML = activeAppointments
       .map(
         (appointment, index) => {
           const activePhysios = (state.physiotherapists.length ? state.physiotherapists : state.users)
@@ -735,7 +738,7 @@ const renderAppointments = (appointments) => {
       .join('');
   });
 
-  renderAssistantIntakes(appointments);
+  renderAssistantIntakes(activeAppointments);
 };
 
 const renderAssistantIntakes = (appointments) => {

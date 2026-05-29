@@ -95,7 +95,7 @@ test('overlapping appointments are rejected with a clear actionable message', ()
     true
   );
   assert.equal(
-    controller.includes('El paciente ya tiene otra cita pendiente o programada en ese mismo horario.'),
+    controller.includes('El paciente ya tiene una cita pendiente o programada en este mismo día.'),
     true
   );
 });

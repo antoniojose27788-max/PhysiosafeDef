@@ -399,21 +399,23 @@ const ensureNoAppointmentOverlap = async ({ startsAt, endsAt, physiotherapistId,
 };
 
 const ensureNoPatientOverlap = async ({ startsAt, endsAt, patientId, excludeId, transaction }) => {
+  const startOfDay = createMadridDate(toDateOnly(new Date(startsAt)), 0, 0);
+  const endOfDay = createMadridDate(toDateOnly(new Date(startsAt)), 23, 59);
+
   const overlappingAppointment = await Appointment.findOne({
     where: {
       patientId,
       status: { [Op.in]: ['pending', 'scheduled'] },
       ...(excludeId ? { id: { [Op.ne]: excludeId } } : {}),
-      [Op.and]: [
-        { startsAt: { [Op.lt]: endsAt } },
-        { endsAt: { [Op.gt]: startsAt } }
-      ]
+      startsAt: {
+        [Op.between]: [startOfDay, endOfDay]
+      }
     },
     transaction
   });
 
   if (overlappingAppointment) {
-    const error = new Error('El paciente ya tiene otra cita pendiente o programada en ese mismo horario. Elige una franja horaria diferente.');
+    const error = new Error('El paciente ya tiene una cita pendiente o programada en este mismo día. Solo se permite reservar una cita por día.');
     error.status = 409;
     throw error;
   }
@@ -1504,10 +1506,9 @@ const deleteConsent = asyncHandler(async (req, res) => {
 
 const getStats = asyncHandler(async (req, res) => {
   const now = new Date();
-  const startOfDay = new Date(now);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(now);
-  endOfDay.setHours(23, 59, 59, 999);
+  const dateStr = toDateOnly(now);
+  const startOfDay = createMadridDate(dateStr, 0, 0);
+  const endOfDay = createMadridDate(dateStr, 23, 59);
 
   const appointmentWhere = getAppointmentWhereForUser(req.user);
   const patientResourceWhere = getPatientResourceWhereForUser(req.user, 'patientId', 'authorId');
@@ -1524,8 +1525,8 @@ const getStats = asyncHandler(async (req, res) => {
     totalReports,
     appointmentsByStatus
   ] = await Promise.all([
-    isAdmin(req.user) ? User.count() : Promise.resolve(null),
-    isAdmin(req.user) ? User.count({ where: { role: 'paciente', isActive: true } }) : Promise.resolve(null),
+    (isAdmin(req.user) || isPhysio(req.user)) ? User.count() : Promise.resolve(null),
+    (isAdmin(req.user) || isPhysio(req.user)) ? User.count({ where: { role: 'paciente', isActive: true } }) : Promise.resolve(null),
     Appointment.count({
       where: {
         ...appointmentWhere,

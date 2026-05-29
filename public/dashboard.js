@@ -1361,157 +1361,157 @@ const assistantKnowledge = [
     keywords: ['admin', 'usuario', 'usuarios', 'fisio', 'fisioterapeuta', 'crear fisio', 'alta', 'crear usuario'],
     section: 'users',
     answer:
-      'Para dar altas internas, entra en Usuarios. El admin puede crear pacientes, fisioterapeutas y otros admins. El registro publico solo crea pacientes.'
+      '<strong>Alta y gobierno de usuarios.</strong><br>Desde Usuarios, el administrador puede crear pacientes, fisioterapeutas y otros perfiles internos. Es el punto de control para mantener permisos ordenados, evitar accesos indebidos y preparar fichas antes de la primera visita.'
   },
   {
     keywords: ['desactivar usuario', 'baja usuario', 'eliminar usuario', 'permisos', 'roles'],
     section: 'users',
     answer:
-      'En Usuarios puedes revisar roles y desactivar cuentas. Es una seccion solo para admin porque controla permisos de acceso a datos clinicos.'
+      '<strong>Roles, permisos y bajas.</strong><br>La seccion Usuarios permite revisar el rol de cada cuenta y desactivar accesos cuando ya no deben operar. Es una funcion reservada al administrador porque afecta directamente a informacion clinica y continuidad asistencial.'
   },
   {
     keywords: ['paciente nuevo', 'registrar paciente', 'alta paciente'],
     section: 'users',
     answer:
-      'Un paciente puede registrarse desde la portada, pero el admin tambien puede crearlo desde Usuarios si necesita preparar su ficha antes de la primera cita.'
+      '<strong>Alta de pacientes.</strong><br>El paciente puede registrarse desde la portada, pero el equipo tambien puede crear su ficha desde Usuarios para preparar agenda, consentimientos o reportes antes de la primera cita.'
   },
   {
     keywords: ['cita', 'citas', 'solape', 'agenda', 'crear cita', 'nueva cita', 'solicitar cita'],
     section: 'appointments',
     answer:
-      'Para crear o solicitar una cita, abre Citas, elige fisioterapeuta, inicio y fin. Si eres paciente, la cita queda como pendiente para que el equipo la revise.'
+      '<strong>Gestion de citas.</strong><br>En Citas se seleccionan paciente, fisioterapeuta, fecha de inicio y fin. El sistema valida disponibilidad, evita solapes y bloquea horarios no disponibles para que la agenda sea fiable.'
   },
   {
     keywords: ['cita paciente', 'soy paciente', 'pedir cita', 'reservar cita', 'cliente'],
     section: 'appointments',
     answer:
-      'Como paciente puedes solicitar una cita desde Citas. Tu usuario queda asignado automaticamente, eliges fisioterapeuta y horario, y el estado queda pendiente.'
+      '<strong>Solicitud desde cuenta de paciente.</strong><br>El paciente puede pedir una cita desde Citas. Su cuenta queda asociada automaticamente y la solicitud queda pendiente para que el equipo revise horario, profesional y prioridad antes de confirmarla.'
   },
   {
     keywords: ['disponible', 'disponibilidad', 'hueco', 'huecos libres', 'dias disponibles'],
     section: 'appointments',
     answer:
-      'Al elegir fisioterapeuta, PhysioSafe muestra los proximos dias con huecos reales. Los dias bloqueados, fines de semana o completos no se pueden reservar.'
+      '<strong>Disponibilidad real.</strong><br>Al elegir fisioterapeuta, PhysioSafe muestra huecos calculados con citas activas, fines de semana y dias bloqueados. Si un dia aparece completo o no laborable, no deberia usarse para nuevas reservas.'
   },
   {
     keywords: ['bloquear dia', 'dia no laborable', 'no se trabaja', 'vacaciones'],
     section: 'calendar',
     answer:
-      'Admin y fisioterapeutas pueden bloquear dias no laborables desde Calendario. Esos dias dejan de aparecer como disponibles para los pacientes.'
+      '<strong>Bloqueos de agenda.</strong><br>Admin y fisioterapeutas pueden bloquear dias no laborables desde Calendario. Esos bloqueos se aplican a la disponibilidad y ayudan a evitar reservas en vacaciones, formaciones, festivos o cierres de clinica.'
   },
   {
     keywords: ['horario laboral', 'fuera de horario', 'hora disponible'],
     section: 'appointments',
     answer:
-      'El horario base de reserva es de lunes a viernes, de 09:00 a 18:00, en bloques de una hora. El sistema evita solapes y dias bloqueados.'
+      '<strong>Horario de reserva.</strong><br>El horario base es de lunes a viernes, de 09:00 a 18:00, con bloques de una hora. Si necesitas otro modelo horario, conviene definirlo de forma explicita para no generar citas fuera del flujo operativo.'
   },
   {
     keywords: ['cancelar cita', 'completar cita', 'validar cita', 'estado cita'],
     section: 'appointments',
     answer:
-      'El equipo clinico puede completar, validar o cancelar citas desde cada tarjeta. El paciente puede consultar sus citas, pero no validar actividad clinica.'
+      '<strong>Estados de cita.</strong><br>El equipo clinico puede aceptar, completar, validar, reprogramar o anular citas segun el estado. El paciente puede consultar y cancelar solicitudes futuras permitidas, pero no validar actividad clinica.'
   },
   {
     keywords: ['calendario', 'mes', 'dia', 'agenda visual', 'ver agenda'],
     section: 'calendar',
     answer:
-      'El Calendario muestra las citas por mes y estado. Usa las flechas para moverte entre meses o el boton central para volver a hoy.'
+      '<strong>Calendario operativo.</strong><br>El Calendario ofrece una vista mensual para detectar carga asistencial, dias ocupados, citas pendientes y bloqueos. Usa las flechas para cambiar de mes y el boton central para volver al dia actual.'
   },
   {
     keywords: ['hoy', 'citas de hoy', 'proxima cita', 'proximas citas'],
     section: 'calendar',
     answer:
-      'Puedes ver la actividad del dia en Resumen y el detalle mensual en Calendario. Si preguntas por proximas citas, tambien puedo resumir lo que esta cargado en tu vista.'
+      '<strong>Actividad y proximas citas.</strong><br>El Resumen muestra indicadores rapidos y Calendario da contexto mensual. Si hay citas cargadas en tu vista, puedo resumir cuantas hay pendientes, programadas y cual es la proxima.'
   },
   {
     keywords: ['mes anterior', 'mes siguiente', 'volver a hoy', 'navegar calendario'],
     section: 'calendar',
     answer:
-      'En Calendario, los botones de flecha cambian de mes y el boton central vuelve a hoy. Cada dia muestra hasta tres citas y un contador si hay mas.'
+      '<strong>Navegacion del calendario.</strong><br>Las flechas cambian de mes y el boton central vuelve a hoy. Cada dia muestra las citas principales y un contador cuando hay mas actividad de la que cabe en la celda.'
   },
   {
     keywords: ['reporte', 'reportes', 'informe', 'diagnostico', 'tratamiento', 'evolucion'],
     section: 'reports',
     answer:
-      'Los reportes clinicos los crean admin o fisioterapeutas. Sirven para evolucion, diagnostico, alta o incidencias, siempre asociados a un paciente.'
+      '<strong>Reportes clinicos.</strong><br>Los reportes documentan evolucion, diagnostico, incidencias, alta y plan terapeutico. Deben asociarse siempre a un paciente para mantener continuidad, trazabilidad y contexto entre sesiones.'
   },
   {
     keywords: ['alta', 'informe alta', 'incidencia', 'plan tratamiento'],
     section: 'reports',
     answer:
-      'En Reportes puedes documentar evolucion, diagnostico, alta o incidencias. El plan de tratamiento ayuda a dejar claro el siguiente objetivo terapeutico.'
+      '<strong>Alta, incidencias y plan.</strong><br>Usa Reportes para dejar por escrito objetivos, evolucion, incidencias relevantes y criterios de alta. El plan de tratamiento ayuda a que cualquier profesional entienda el siguiente paso asistencial.'
   },
   {
     keywords: ['ver mis informes', 'mis reportes', 'historial clinico'],
     section: 'reports',
     answer:
-      'Si eres paciente, Reportes te muestra tus informes visibles. Si eres fisio, ves los reportes relacionados con tus pacientes o autoria.'
+      '<strong>Consulta de informes.</strong><br>Los pacientes ven sus reportes disponibles. Los fisioterapeutas y administradores acceden segun permisos, autoria y visibilidad del recurso para proteger informacion clinica sensible.'
   },
   {
     keywords: ['consentimiento', 'firmar', 'firma', 'legal', 'documento'],
     section: 'consents',
     answer:
-      'El equipo clinico emite consentimientos. El paciente puede firmarlos desde su panel si estan pendientes, y el sistema guarda fecha y firma.'
+      '<strong>Consentimientos informados.</strong><br>El equipo emite consentimientos de tratamiento, datos, imagen o teleconsulta. El paciente puede firmarlos desde su panel y el sistema conserva estado, fecha y huella de firma.'
   },
   {
     keywords: ['revocar consentimiento', 'cancelar consentimiento', 'datos', 'imagen', 'teleconsulta'],
     section: 'consents',
     answer:
-      'En Consentimientos se gestionan documentos de tratamiento, datos, imagen y teleconsulta. Un consentimiento puede firmarse o revocarse segun el estado.'
+      '<strong>Revocacion y estados legales.</strong><br>Un consentimiento puede estar pendiente, firmado, revocado o expirado. La revocacion debe usarse cuando el paciente retira autorizacion o el documento deja de ser aplicable.'
   },
   {
     keywords: ['consentimiento pendiente', 'pendiente de firmar', 'firmar documento'],
     section: 'consents',
     answer:
-      'Si tienes documentos pendientes, abre Consentimientos y usa Firmar en la tarjeta correspondiente. La firma queda asociada a tu usuario.'
+      '<strong>Documentos pendientes.</strong><br>Si hay consentimientos pendientes, abre Consentimientos y firma el documento correspondiente. La firma se asocia a tu usuario y deja constancia de aceptacion.'
   },
   {
     keywords: ['typebot', 'bot', 'asistente', 'webhook', 'admision', 'plantilla', 'triaje'],
     section: 'assistant',
     answer:
-      'En Asistente tienes el circuito de admision completo. El Typebot recoge identidad, contacto, motivo, zona, evolucion, dolor, urgencia, alertas clinicas, tratamiento previo, disponibilidad y fisioterapeuta elegido; envia el webhook protegido y PhysioSafe crea o actualiza el paciente con una cita pendiente.'
+      '<strong>Admision digital y triaje.</strong><br>En Asistente se recoge identidad, contacto, motivo, zona afectada, dolor, urgencia, alertas, disponibilidad y fisioterapeuta preferido. Con esos datos PhysioSafe prepara la ficha y puede generar una cita pendiente para revision.'
   },
   {
     keywords: ['probar asistente', 'editar flujo', 'builder', 'viewer'],
     section: 'assistant',
     answer:
-      'Usa el panel Asistente para completar la admision digital del paciente: recoge motivo de consulta, disponibilidad y datos utiles antes de la primera cita.'
+      '<strong>Uso del asistente.</strong><br>Usa el panel Asistente para simular o completar una admision antes de consulta. Es especialmente util para primeras visitas, derivaciones y casos donde conviene llegar con contexto previo.'
   },
   {
     keywords: ['admisiones', 'primera visita', 'motivo consulta', 'dolor'],
     section: 'assistant',
     answer:
-      'El flujo de admision recoge identidad, motivo, dolor, zona afectada, evolucion, urgencia, alertas, tratamiento previo, disponibilidad y fisioterapeuta elegido. Con esos datos el sistema prepara la ficha, calcula prioridad inicial y genera una cita pendiente para revision del equipo.'
+      '<strong>Primera visita mejor preparada.</strong><br>El flujo de admision recoge motivo, dolor, zona afectada, evolucion, urgencia, alertas, tratamiento previo y disponibilidad. Esto ayuda a priorizar y reduce preguntas repetidas al iniciar la valoracion.'
   },
   {
     keywords: ['urgente', 'urgencia', 'alerta', 'bandera roja', 'hormigueo', 'traumatismo', 'fiebre', 'incontinencia'],
     section: 'assistant',
     answer:
-      'Si la admision incluye dolor intenso, traumatismo, fiebre, perdida de fuerza, hormigueo progresivo o perdida de control de esfinteres, PhysioSafe la marca como revision prioritaria en las notas y en el titulo de la cita. El asistente tambien debe recomendar contacto sanitario urgente cuando la gravedad lo justifique.'
+      '<strong>Alertas clinicas.</strong><br>Dolor intenso, traumatismo, fiebre, perdida de fuerza, hormigueo progresivo o incontinencia deben tratarse con prioridad. PhysioSafe puede marcar el caso para revision, pero si hay gravedad se debe derivar a atencion sanitaria urgente.'
   },
   {
     keywords: ['whatsapp', 'email', 'recordatorio', 'confirmacion'],
     section: 'appointments',
     answer:
-      'Las confirmaciones ayudan al paciente a recordar su cita y a tener claro el dia, la hora y el fisioterapeuta asignado.'
+      '<strong>Confirmaciones y recordatorios.</strong><br>Las confirmaciones reducen ausencias y ayudan al paciente a tener claro dia, hora, profesional y preparacion previa. Es una mejora recomendable para una fase posterior si quieres reforzar comunicacion.'
   },
   {
     keywords: ['resumen', 'estadisticas', 'stats', 'dashboard', 'indicadores'],
     section: 'overview',
     answer:
-      'El Resumen muestra usuarios, pacientes activos, citas de hoy, proximas citas, consentimientos y reportes. Usa Actualizar para sincronizar datos.'
+      '<strong>Resumen operativo.</strong><br>El Resumen concentra usuarios, pacientes activos, citas de hoy, proximas sesiones, consentimientos y reportes. Es la vista rapida para saber si el dia esta bajo control.'
   },
   {
     keywords: ['actualizar datos', 'sincronizar', 'recargar panel'],
     section: 'overview',
     answer:
-      'El boton Actualizar vuelve a pedir datos al servidor: estadisticas, citas, reportes, consentimientos y usuarios segun tu rol.'
+      '<strong>Sincronizacion del panel.</strong><br>El boton Actualizar vuelve a consultar el servidor y refresca los datos visibles segun tu rol. Usalo si acabas de crear o modificar citas, documentos o usuarios.'
   },
   {
     keywords: ['que puedo hacer', 'mi rol', 'permisos disponibles'],
     section: 'overview',
     answer:
-      'Tus permisos dependen del rol: admin gestiona todo, fisio trabaja con pacientes y actividad clinica, paciente solicita citas y consulta sus documentos.'
+      '<strong>Permisos por rol.</strong><br>Admin gestiona usuarios, agenda y documentos. Fisioterapeuta trabaja con actividad clinica, reportes, agenda y pacientes. Paciente consulta su informacion, solicita citas y firma documentos pendientes.'
   }
 ];
 
@@ -1532,7 +1532,7 @@ const buildAssistant = () => {
         </button>
       </header>
       <section class="assistant-messages" aria-live="polite">
-        <article class="assistant-message bot">Estoy conectado al panel. Puedo orientarte sobre citas, calendario, pacientes, reportes, consentimientos y admision clinica.</article>
+        <article class="assistant-message bot"><strong>Asistente operativo PhysioSafe.</strong><br>Estoy conectado al panel y puedo orientarte sobre agenda, pacientes, reportes, consentimientos, admision clinica y permisos segun tu rol.</article>
       </section>
       <nav class="assistant-suggestions" aria-label="Preguntas sugeridas">
         <button type="button">Como pide cita un paciente?</button>
@@ -1595,7 +1595,7 @@ const buildAssistant = () => {
     return {
       answer: `${
         match?.answer ||
-        'Puedo ayudarte con citas, usuarios, reportes, consentimientos, calendario y admision clinica dentro de PhysioSafe.'
+        '<strong>Puedo ayudarte dentro del panel.</strong><br>Prueba con citas, disponibilidad, calendario, usuarios, reportes, consentimientos, admision, triaje o permisos de tu rol. Si necesitas actuar sobre un modulo, te ofrecere abrir la seccion correspondiente.'
       }${roleHint}${summaryHint}`,
       section: match?.section
     };

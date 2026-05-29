@@ -59,7 +59,7 @@ NPM_ADMIN_PORT=81
 ```
 
 No subas el `.env` a Git. Cambia todos los secretos antes de desplegar.
-En `NODE_ENV=production`, la aplicacion rechaza arrancar si `JWT_SECRET` o `TYPEBOT_WEBHOOK_SECRET` faltan o siguen usando valores placeholder. Solo usa `ALLOW_INSECURE_CONFIG=true` para pruebas locales controladas, nunca para produccion.
+En `NODE_ENV=production`, la aplicacion rechaza arrancar si `JWT_SECRET` o `TYPEBOT_WEBHOOK_SECRET` faltan o siguen usando valores placeholder. Tambien rechaza `DB_SYNC_ALTER=true` para evitar cambios automaticos de esquema en produccion. Solo usa `ALLOW_INSECURE_CONFIG=true` o `ALLOW_PRODUCTION_SCHEMA_ALTER=true` para pruebas o ventanas de mantenimiento controladas, nunca como configuracion permanente de produccion.
 
 ## Arranque con Docker
 

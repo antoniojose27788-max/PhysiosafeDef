@@ -10,9 +10,11 @@
   --line: rgba(16, 35, 38, 0.12);
   --line-bright: rgba(255, 255, 255, 0.74);
   --brand: #0c8f88;
+  --brand-base: #0c8f88;
   --brand-dark: #066b68;
   --brand-light: #44c7bd;
   --accent: #f4b860;
+  --accent-light: #ffd48a;
   --coral: #db6f57;
   --blue: #376e89;
   --danger: #cc3d5a;
@@ -2414,8 +2416,8 @@ body.menu-open .floating-assistant {
 
 @media (max-width: 576px) {
   .floating-assistant {
-    right: 16px;
-    bottom: 16px;
+    right: 12px;
+    bottom: 12px;
   }
   
   .assistant-toggle {
@@ -2431,6 +2433,45 @@ body.menu-open .floating-assistant {
 
   .assistant-toggle i {
     font-size: 1.4rem;
+  }
+
+  .assistant-chat {
+    width: calc(100vw - 24px);
+    height: min(640px, calc(100vh - 96px));
+    max-height: calc(100vh - 96px);
+    border-radius: 22px;
+  }
+
+  .assistant-chat > header {
+    padding: 16px 18px;
+  }
+
+  .assistant-messages {
+    padding: 18px;
+    gap: 12px;
+  }
+
+  .assistant-message {
+    max-width: 96%;
+    padding: 14px 16px;
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  .assistant-suggestions {
+    padding: 0 18px 12px;
+  }
+
+  .assistant-form {
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 10px;
+    padding: 14px 18px 18px;
+  }
+
+  .assistant-form .form-control,
+  .assistant-form .primary-action {
+    min-height: 44px;
+    height: 44px;
   }
 }
 
@@ -2464,8 +2505,9 @@ body.menu-open .floating-assistant {
 }
 
 .assistant-chat {
-  width: min(400px, calc(100vw - 32px));
-  max-height: min(500px, calc(100vh - 100px)); /* Allow tall enough to show all elements but keep X visible */
+  width: min(460px, calc(100vw - 32px));
+  height: min(680px, calc(100vh - 96px));
+  max-height: min(680px, calc(100vh - 96px));
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.65);
@@ -2479,6 +2521,7 @@ body.menu-open .floating-assistant {
 
 .assistant-chat > header {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -2500,17 +2543,22 @@ body.menu-open .floating-assistant {
   flex-direction: column;
   gap: 14px;
   flex: 1 1 auto;
+  min-height: 0;
   padding: 24px;
   overflow-y: auto;
+  overflow-x: hidden;
   scroll-behavior: smooth;
 }
 
 .assistant-message {
-  max-width: 88%;
+  max-width: 94%;
   padding: 16px 20px;
   border-radius: 20px;
   font-size: 0.95rem;
   line-height: 1.6;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
   animation: chatbot-msg-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
   position: relative;
 }
@@ -2563,6 +2611,7 @@ body.menu-open .floating-assistant {
 
 .assistant-suggestions {
   display: flex;
+  flex: 0 0 auto;
   flex-wrap: wrap;
   gap: 8px;
   padding: 0 24px 16px;
@@ -2601,6 +2650,7 @@ body.menu-open .floating-assistant {
 
 .assistant-form {
   display: grid;
+  flex: 0 0 auto;
   grid-template-columns: minmax(0, 1fr) 48px;
   gap: 12px;
   padding: 16px 24px 24px;
@@ -3704,8 +3754,8 @@ body.menu-open .floating-assistant {
   }
 
   .floating-assistant {
-    right: 14px;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 104px);
+    right: 12px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
   }
 
   .assistant-toggle span {
@@ -3720,7 +3770,9 @@ body.menu-open .floating-assistant {
   }
 
   .assistant-chat {
-    width: min(92vw, 360px);
+    width: calc(100vw - 24px);
+    height: min(640px, calc(100vh - 96px));
+    max-height: calc(100vh - 96px);
     right: 0;
     left: auto;
   }
@@ -3936,7 +3988,7 @@ body.menu-open .floating-assistant {
     align-items: flex-start;
   }
 
-  .header-mobile-back {
+  .header-mobile-close {
     display: inline-grid;
     width: 58px;
     height: 58px;
@@ -3957,7 +4009,7 @@ body.menu-open .floating-assistant {
     text-decoration: none;
   }
 
-  .header-mobile-back:hover {
+  .header-mobile-close:hover {
     color: var(--brand-light);
     box-shadow:
       0 14px 36px rgba(12, 143, 136, 0.16),
@@ -3965,7 +4017,7 @@ body.menu-open .floating-assistant {
     transform: translateX(-4px);
   }
 
-  .header-mobile-back:focus-visible {
+  .header-mobile-close:focus-visible {
     outline: 3px solid rgba(12, 143, 136, 0.24);
     outline-offset: 4px;
   }

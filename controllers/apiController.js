@@ -430,6 +430,12 @@ const ensureBookableSlot = async ({ startsAt, endsAt, physiotherapistId, transac
     throw error;
   }
 
+  if (start <= new Date()) {
+    const error = new Error('La cita debe empezar en una fecha y hora futura.');
+    error.status = 409;
+    throw error;
+  }
+
   if (isWeekend(start)) {
     const error = new Error('Ese dia no esta disponible para citas.');
     error.status = 409;

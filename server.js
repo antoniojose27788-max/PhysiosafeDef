@@ -20,6 +20,7 @@ const app = express();
 const PORT = Number(process.env.APP_PORT) || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 const shouldAlterSchema = process.env.DB_SYNC_ALTER === 'true';
+const shouldAllowProductionSchemaAlter = process.env.ALLOW_PRODUCTION_SCHEMA_ALTER === 'true';
 
 const PLACEHOLDER_PATTERNS = [
   'replace_with_',
@@ -82,6 +83,14 @@ const validateRuntimeConfig = () => {
   console.warn(`Advertencia de configuracion: revisa secretos placeholder en ${labels}.`);
 };
 
+const validateDatabaseSyncConfig = () => {
+  if (isProduction && shouldAlterSchema && !shouldAllowProductionSchemaAlter) {
+    throw new Error(
+      'DB_SYNC_ALTER=true no esta permitido en produccion. Usa migraciones controladas o activa ALLOW_PRODUCTION_SCHEMA_ALTER=true solo durante una ventana de mantenimiento.'
+    );
+  }
+};
+
 const createRateLimiter =
   ({ windowMs, maxRequests, message }) =>
   (req, res, next) => {
@@ -122,6 +131,7 @@ app.disable('x-powered-by');
 app.disable('etag');
 app.set('trust proxy', 1);
 validateRuntimeConfig();
+validateDatabaseSyncConfig();
 
 app.use(
   helmet({

@@ -95,6 +95,30 @@ const hasUnexpectedFields = (payload, allowedFields) =>
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
 
+const timingSafeEqualText = (left, right) => {
+  const leftBuffer = Buffer.from(String(left || ''), 'utf8');
+  const rightBuffer = Buffer.from(String(right || ''), 'utf8');
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
+};
+
+const assertAuthorizedTypebotIntake = (req) => {
+  if (req.user) return;
+
+  const configuredSecret = process.env.TYPEBOT_WEBHOOK_SECRET;
+  if (!configuredSecret) {
+    const error = new Error('La admision externa no esta configurada de forma segura.');
+    error.status = 503;
+    throw error;
+  }
+
+  const providedSecret = req.get('X-PhysioSafe-Typebot-Secret');
+  if (!providedSecret || !timingSafeEqualText(providedSecret, configuredSecret)) {
+    const error = new Error('Secreto de admision invalido.');
+    error.status = 401;
+    throw error;
+  }
+};
+
 const normalizePreference = (value) => {
   const text = String(value || '')
     .toLowerCase()
@@ -454,6 +478,8 @@ const listActivePhysiotherapists = asyncHandler(async (req, res) => {
 });
 
 const receiveTypebotIntake = asyncHandler(async (req, res) => {
+  assertAuthorizedTypebotIntake(req);
+
   const {
     name,
     email,

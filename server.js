@@ -57,7 +57,7 @@ const validateRuntimeConfig = () => {
   if (!invalidEntries.length) return;
 
   const labels = invalidEntries.map(([key]) => key).join(', ');
-  if (isProduction && process.env.ENFORCE_SECURE_CONFIG === 'true') {
+  if (isProduction && process.env.ALLOW_INSECURE_CONFIG !== 'true') {
     throw new Error(`Configuracion insegura detectada en produccion: ${labels}.`);
   }
 
@@ -274,8 +274,9 @@ app.use((error, req, res, next) => {
   const isSequelizeForeignKey = error.name === 'SequelizeForeignKeyConstraintError';
   const status = error.status || (isSequelizeValidation || isSequelizeForeignKey ? 400 : 500);
   const validationMessage = error.errors?.map((item) => item.message).join(' ') || error.message;
+  const isOperationalError = Boolean(error.status) || isSequelizeValidation || isSequelizeForeignKey;
 
-  if (status >= 500) {
+  if (status >= 500 && !isOperationalError) {
     console.error('Error no controlado en PhysioSafe API:', error);
   } else {
     console.warn(`Solicitud rechazada [${status}] ${req.method} ${req.originalUrl}: ${validationMessage}`);

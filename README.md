@@ -59,6 +59,7 @@ NPM_ADMIN_PORT=81
 ```
 
 No subas el `.env` a Git. Cambia todos los secretos antes de desplegar.
+En `NODE_ENV=production`, la aplicacion rechaza arrancar si `JWT_SECRET` o `TYPEBOT_WEBHOOK_SECRET` faltan o siguen usando valores placeholder. Solo usa `ALLOW_INSECURE_CONFIG=true` para pruebas locales controladas, nunca para produccion.
 
 ## Arranque con Docker
 
@@ -138,6 +139,8 @@ Debe enviarse la cabecera:
 ```http
 x-physiosafe-typebot-secret: TU_TYPEBOT_WEBHOOK_SECRET
 ```
+
+Las admisiones creadas desde el dashboard pueden usar la sesion autenticada. Las llamadas externas de Typebot deben enviar siempre ese secreto.
 
 ## Verificaciones antes de produccion
 

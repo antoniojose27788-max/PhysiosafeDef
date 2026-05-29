@@ -24,7 +24,7 @@ PhysioSafe queda operativo como plataforma de gestion para clinica de fisioterap
 
 ### Arranque y produccion
 
-- El servidor ya no bloquea produccion por secretos placeholder salvo que `ENFORCE_SECURE_CONFIG=true`.
+- El servidor bloquea el arranque en produccion si detecta secretos ausentes o placeholder en `JWT_SECRET` o `TYPEBOT_WEBHOOK_SECRET`.
 - El `sequelize.sync({ alter: ... })` agresivo se ha eliminado del arranque por defecto.
 - Solo se altera esquema si `DB_SYNC_ALTER=true`.
 - Docker usa `npm ci --omit=dev` con `package-lock.json` para builds reproducibles.
@@ -80,4 +80,4 @@ Comprobaciones realizadas:
 
 - Antes del redeploy en Ubuntu, sustituir secretos placeholder reales en `.env`.
 - No activar `DB_SYNC_ALTER=true` en produccion salvo cambio controlado.
-- Si se quiere endurecimiento obligatorio de secretos, activar `ENFORCE_SECURE_CONFIG=true` solo cuando el entorno ya tenga valores reales.
+- No usar `ALLOW_INSECURE_CONFIG=true` en produccion; existe solo para pruebas controladas.

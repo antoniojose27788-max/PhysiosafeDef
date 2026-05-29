@@ -74,8 +74,8 @@ const buildNativeChatbot = () => {
 
   const addBotMessage = (html, extraClass = '') => {
     const msg = document.createElement('article');
-    msg.className = \`chatbot-msg chatbot-msg--bot \${extraClass}\`.trim();
-    msg.innerHTML = \`<i class="fa-solid fa-robot chatbot-msg__icon" aria-hidden="true"></i><div class="chatbot-msg__bubble">\${html}</div>\`;
+    msg.className = `chatbot-msg chatbot-msg--bot ${extraClass}`.trim();
+    msg.innerHTML = `<i class="fa-solid fa-robot chatbot-msg__icon" aria-hidden="true"></i><div class="chatbot-msg__bubble">${html}</div>`;
     messagesContainer.appendChild(msg);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
     return msg;
@@ -84,7 +84,7 @@ const buildNativeChatbot = () => {
   const addUserMessage = (text) => {
     const msg = document.createElement('article');
     msg.className = 'chatbot-msg chatbot-msg--user';
-    msg.innerHTML = \`<div class="chatbot-msg__bubble">\${escapeHtml(text)}</div>\`;
+    msg.innerHTML = `<div class="chatbot-msg__bubble">${escapeHtml(text)}</div>`;
     messagesContainer.appendChild(msg);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   };
@@ -92,7 +92,7 @@ const buildNativeChatbot = () => {
   const showTyping = () => {
     const typing = document.createElement('article');
     typing.className = 'chatbot-msg chatbot-msg--bot chatbot-typing';
-    typing.innerHTML = \`<i class="fa-solid fa-robot chatbot-msg__icon" aria-hidden="true"></i><div class="chatbot-msg__bubble"><span class="chatbot-dots"><span></span><span></span><span></span></span></div>\`;
+    typing.innerHTML = `<i class="fa-solid fa-robot chatbot-msg__icon" aria-hidden="true"></i><div class="chatbot-msg__bubble"><span class="chatbot-dots"><span></span><span></span><span></span></span></div>`;
     messagesContainer.appendChild(typing);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
     return typing;
@@ -113,10 +113,10 @@ const buildNativeChatbot = () => {
     clearInput();
     const form = document.createElement('form');
     form.className = 'chatbot-text-form';
-    form.innerHTML = \`
-      <input class="chatbot-text-input" type="text" placeholder="\${escapeHtml(placeholder)}" autocomplete="off" required>
+    form.innerHTML = `
+      <input class="chatbot-text-input" type="text" placeholder="${escapeHtml(placeholder)}" autocomplete="off" required>
       <button class="chatbot-send-btn" type="submit" aria-label="Enviar"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
-    \`;
+    `;
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const input = form.querySelector('input');
@@ -134,10 +134,10 @@ const buildNativeChatbot = () => {
     clearInput();
     const form = document.createElement('form');
     form.className = 'chatbot-text-form';
-    form.innerHTML = \`
-      <input class="chatbot-text-input" type="email" placeholder="\${escapeHtml(placeholder)}" autocomplete="off" required>
+    form.innerHTML = `
+      <input class="chatbot-text-input" type="email" placeholder="${escapeHtml(placeholder)}" autocomplete="off" required>
       <button class="chatbot-send-btn" type="submit" aria-label="Enviar"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
-    \`;
+    `;
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const input = form.querySelector('input');
@@ -163,7 +163,7 @@ const buildNativeChatbot = () => {
       btn.className = 'chatbot-choice-btn';
       btn.type = 'button';
       if (opt.icon) {
-        btn.innerHTML = \`<i class="fa-solid \${escapeHtml(opt.icon)}" aria-hidden="true"></i> \${escapeHtml(opt.label)}\`;
+        btn.innerHTML = `<i class="fa-solid ${escapeHtml(opt.icon)}" aria-hidden="true"></i> ${escapeHtml(opt.label)}`;
       } else {
         btn.textContent = opt.label;
       }
@@ -186,7 +186,7 @@ const buildNativeChatbot = () => {
       const btn = document.createElement('button');
       btn.className = 'chatbot-choice-btn chatbot-choice-btn--physio';
       btn.type = 'button';
-      btn.innerHTML = \`<i class="fa-solid fa-user-doctor" aria-hidden="true"></i> <strong>\${escapeHtml(p.name)}</strong>\`;
+      btn.innerHTML = `<i class="fa-solid fa-user-doctor" aria-hidden="true"></i> <strong>${escapeHtml(p.name)}</strong>`;
       btn.addEventListener('click', () => {
         addUserMessage(p.name);
         clearInput();
@@ -202,7 +202,7 @@ const buildNativeChatbot = () => {
 
   const loadChatbotPhysios = async () => {
     try {
-      const res = await fetch(\`\${API_BASE}/typebot/active-physios\`, {
+      const res = await fetch(`${API_BASE}/typebot/active-physios`, {
         headers: { Accept: 'application/json' }
       });
       if (res.ok) {
@@ -391,18 +391,18 @@ const buildNativeChatbot = () => {
         const priority = hasRedFlag || (chatbotData.pain && chatbotData.pain.includes('intenso')) || (chatbotData.urgency && chatbotData.urgency.includes('urgente'))
           ? 'Revision prioritaria' : 'Normal';
 
-        let summary = \`<strong>Resumen de tu admision:</strong><br>\`;
-        summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-user"></i> \${escapeHtml(chatbotData.name)}</span>\`;
-        summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-envelope"></i> \${escapeHtml(chatbotData.email)}</span>\`;
-        summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-phone"></i> \${escapeHtml(chatbotData.phone)}</span>\`;
-        summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-comment-medical"></i> \${escapeHtml(chatbotData.reason)}</span>\`;
-        if (chatbotData.area) summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-person-dots-from-line"></i> \${escapeHtml(chatbotData.area)}</span>\`;
-        if (chatbotData.pain) summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-face-grimace"></i> \${escapeHtml(chatbotData.pain)}</span>\`;
-        if (chatbotData.urgency) summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-bolt"></i> \${escapeHtml(chatbotData.urgency)}</span>\`;
-        if (hasRedFlag) summary += \`<span class="chatbot-summary-field chatbot-summary-field--alert"><i class="fa-solid fa-triangle-exclamation"></i> \${escapeHtml(chatbotData.redFlags)}</span>\`;
-        summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-user-doctor"></i> \${escapeHtml(chatbotData._physioName || 'Asignacion automatica')}</span>\`;
-        summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-clock"></i> \${escapeHtml(chatbotData.availability)}</span>\`;
-        summary += \`<span class="chatbot-summary-field chatbot-summary-field--priority"><i class="fa-solid fa-flag"></i> Prioridad: \${escapeHtml(priority)}</span>\`;
+        let summary = `<strong>Resumen de tu admision:</strong><br>`;
+        summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-user"></i> ${escapeHtml(chatbotData.name)}</span>`;
+        summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-envelope"></i> ${escapeHtml(chatbotData.email)}</span>`;
+        summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-phone"></i> ${escapeHtml(chatbotData.phone)}</span>`;
+        summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-comment-medical"></i> ${escapeHtml(chatbotData.reason)}</span>`;
+        if (chatbotData.area) summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-person-dots-from-line"></i> ${escapeHtml(chatbotData.area)}</span>`;
+        if (chatbotData.pain) summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-face-grimace"></i> ${escapeHtml(chatbotData.pain)}</span>`;
+        if (chatbotData.urgency) summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-bolt"></i> ${escapeHtml(chatbotData.urgency)}</span>`;
+        if (hasRedFlag) summary += `<span class="chatbot-summary-field chatbot-summary-field--alert"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(chatbotData.redFlags)}</span>`;
+        summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-user-doctor"></i> ${escapeHtml(chatbotData._physioName || 'Asignacion automatica')}</span>`;
+        summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-clock"></i> ${escapeHtml(chatbotData.availability)}</span>`;
+        summary += `<span class="chatbot-summary-field chatbot-summary-field--priority"><i class="fa-solid fa-flag"></i> Prioridad: ${escapeHtml(priority)}</span>`;
 
         addBotMessage(summary);
         await delay(500);
@@ -421,12 +421,12 @@ const buildNativeChatbot = () => {
       }
 
       case 'confirm_contact': {
-        let summary = \`<strong>Resumen del contacto:</strong><br>\`;
-        summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-user"></i> \${escapeHtml(chatbotData.name)}</span>\`;
-        summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-envelope"></i> \${escapeHtml(chatbotData.email)}</span>\`;
-        summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-phone"></i> \${escapeHtml(chatbotData.phone)}</span>\`;
-        summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-comment-medical"></i> \${escapeHtml(chatbotData.reason)}</span>\`;
-        summary += \`<span class="chatbot-summary-field"><i class="fa-solid fa-user-doctor"></i> \${escapeHtml(chatbotData._physioName || 'Asignacion automatica')}</span>\`;
+        let summary = `<strong>Resumen del contacto:</strong><br>`;
+        summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-user"></i> ${escapeHtml(chatbotData.name)}</span>`;
+        summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-envelope"></i> ${escapeHtml(chatbotData.email)}</span>`;
+        summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-phone"></i> ${escapeHtml(chatbotData.phone)}</span>`;
+        summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-comment-medical"></i> ${escapeHtml(chatbotData.reason)}</span>`;
+        summary += `<span class="chatbot-summary-field"><i class="fa-solid fa-user-doctor"></i> ${escapeHtml(chatbotData._physioName || 'Asignacion automatica')}</span>`;
 
         addBotMessage(summary);
         await delay(500);
@@ -491,10 +491,10 @@ const buildNativeChatbot = () => {
         'Content-Type': 'application/json'
       };
       if (token) {
-        headers.Authorization = \`Bearer \${token}\`;
+        headers.Authorization = `Bearer ${token}`;
       }
 
-      const res = await fetch(\`\${API_BASE}/typebot/intake\`, {
+      const res = await fetch(`${API_BASE}/typebot/intake`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
@@ -511,11 +511,11 @@ const buildNativeChatbot = () => {
       chatbotFlow = 'done';
 
       if (data.appointmentCreated) {
-        addBotMessage(\`<strong>¡Admision completada!</strong><br>Se ha creado una <strong>cita pendiente</strong> para \${escapeHtml(chatbotData.name)}. El equipo la revisara y te confirmara la hora exacta.\`, 'chatbot-msg--success');
+        addBotMessage(`<strong>¡Admision completada!</strong><br>Se ha creado una <strong>cita pendiente</strong> para ${escapeHtml(chatbotData.name)}. El equipo la revisara y te confirmara la hora exacta.`, 'chatbot-msg--success');
       } else if (data.appointment) {
-        addBotMessage(\`<strong>¡Admision completada!</strong><br>Ya tenias una cita activa. Los datos de admision se han guardado correctamente.\`, 'chatbot-msg--success');
+        addBotMessage(`<strong>¡Admision completada!</strong><br>Ya tenias una cita activa. Los datos de admision se han guardado correctamente.`, 'chatbot-msg--success');
       } else {
-        addBotMessage(\`<strong>Solicitud enviada.</strong><br>La clinica se pondra en contacto contigo lo antes posible.\`, 'chatbot-msg--success');
+        addBotMessage(`<strong>Solicitud enviada.</strong><br>La clinica se pondra en contacto contigo lo antes posible.`, 'chatbot-msg--success');
       }
 
       // Refresh dashboard if we are in dashboard
@@ -525,7 +525,7 @@ const buildNativeChatbot = () => {
 
     } catch (error) {
       removeTyping();
-      addBotMessage(\`<strong>Error:</strong> \${escapeHtml(error.message)}\`, 'chatbot-msg--error');
+      addBotMessage(`<strong>Error:</strong> ${escapeHtml(error.message)}`, 'chatbot-msg--error');
       showChoices([
         { label: 'Reintentar', value: 'retry', icon: 'fa-rotate' }
       ], async () => {
